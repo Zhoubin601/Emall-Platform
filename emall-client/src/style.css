@@ -1,0 +1,23 @@
+html, body, #app {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  background-color: #f9fafb; /* 给前台一个非常浅的灰白色背景，凸显商品卡片 */
+}
+a { text-decoration: none; }
+.manage-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed #cbd5e1 !important;
+  background: rgba(241, 245, 249, 0.5) !important;
+}
+.manage-content {
+  text-align: center;
+  color: #64748b;
+}
+.manage-card:hover {
+  border-color: #38bdf8 !important;
+  color: #38bdf8;
+}

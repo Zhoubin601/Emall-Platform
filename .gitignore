@@ -1,0 +1,23 @@
+# IDEs
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Node
+node_modules/
+dist/
+
+# Java / Maven
+target/
+*.jar
+*.war
+*.ear
+
+# MySQL data
+mysql-data/
+
+# OS files
+.DS_Store
+Thumbs.db
