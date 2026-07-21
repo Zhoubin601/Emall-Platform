@@ -1,5 +1,8 @@
 # Emall Platform (全栈电商平台项目)
 
+[![CI](https://github.com/Zhoubin601/Emall-Platform/actions/workflows/ci.yml/badge.svg)](https://github.com/Zhoubin601/Emall-Platform/actions/workflows/ci.yml)
+[![Security](https://github.com/Zhoubin601/Emall-Platform/actions/workflows/security.yml/badge.svg)](https://github.com/Zhoubin601/Emall-Platform/actions/workflows/security.yml)
+
 这是一个基于现代化技术栈构建的 B2C 全栈电商平台（包含前台商城、后台管理系统以及 Java 后端服务）。项目设计采用了前后端分离架构，提供了完整的商品购买、订单处理、后台管理等电商核心链路功能。
 
 ---
@@ -75,7 +78,8 @@ Emall-Platform/
 ### 1. 环境准备
 确保您的开发环境中安装了以下软件：
 - **Docker & Docker Compose** (推荐，用于一键启动后端、MySQL 和 Redis)
-- **Node.js** (推荐 v18+，用于运行前端项目)
+- **Node.js 22+**（用于运行前端项目）
+- **Java 21 与 Maven 3.9+**（仅本地运行、测试后端时需要）
 - **Git** (版本控制)
 
 ### 2. 获取代码
@@ -92,15 +96,15 @@ cd mall-backend
 # 创建仅供本机使用的环境变量文件，并填写数据库密码、JWT 密钥、邮箱和邮箱授权码
 cp .env.example .env
 # 一键启动 MySQL、Redis 以及 Spring Boot 后端
-docker-compose up -d --build
+docker compose up -d --build
 ```
 > **注意**：`.env` 包含敏感配置，已被 Git 忽略，禁止提交到仓库。首次启动时 Docker 会自动导入数据库初始化脚本并拉取所需镜像，可能需要花费几分钟时间。后端服务默认运行在 `8080` 端口。
 
 ### 4. 启动前台商城项目 (Client)
 ```bash
 cd ../emall-client
-# 安装依赖
-npm install
+# 按锁文件安装依赖
+npm ci
 # 启动开发服务器
 npm run dev
 ```
@@ -108,19 +112,37 @@ npm run dev
 ### 5. 启动后台管理系统 (Admin)
 ```bash
 cd ../emall-admin
-# 安装依赖
-npm install
+# 按锁文件安装依赖
+npm ci
 # 启动开发服务器
 npm run dev
 ```
 
 ---
 
-## 🔑 默认账号信息
-*（如数据库中提供了默认演示账号，您可以在此补充登录账号和密码。如没有，可删除此项）*
+## ✅ 自动化质量门禁
 
-- **前台测试用户**: 需自行注册或使用 `test` / `123456` (假设)
-- **后台管理员**: 需自行注册或使用 `admin` / `123456` (假设)
+GitHub Actions 会在主分支提交和 Pull Request 上自动执行以下检查：
+
+- Maven `verify`：编译后端、运行测试并生成可执行 JAR。
+- 两个 Vue 应用执行 `npm ci` 和生产构建。
+- Gitleaks 扫描提交历史中的密钥泄露。
+- Pull Request 依赖审查阻止引入高危漏洞。
+- Dependabot 每周检查 Maven、npm 和 GitHub Actions 依赖更新。
+
+提交前可在项目根目录运行相同的本地检查：
+
+```bash
+cd mall-backend && mvn --batch-mode --no-transfer-progress verify
+cd ../emall-client && npm ci && npm run build
+cd ../emall-admin && npm ci && npm run build
+```
+
+---
+
+## 🔑 账号说明
+
+项目不在文档或代码中提供固定明文密码。前台账号可通过注册流程创建；管理员账号应根据本地初始化数据配置，并在首次使用后更换密码。
 
 ---
 

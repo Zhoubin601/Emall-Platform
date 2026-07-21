@@ -175,7 +175,7 @@ body { margin: 0; padding: 0; background-color: #f8fafc; font-family: 'Helvetica
 
 .chat-input-box { padding: 15px; background: #fff; border-top: 1px solid #e2e8f0; display: flex; gap: 10px; align-items: flex-end; }
 .cute-textarea { flex: 1; }
-.cute-textarea :deep(.el-textarea__inner) { border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; box-shadow: none; }
-.cute-textarea :deep(.el-textarea__inner:focus) { border-color: #0ea5e9; background: #fff; }
+.cute-textarea .el-textarea__inner { border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; box-shadow: none; }
+.cute-textarea .el-textarea__inner:focus { border-color: #0ea5e9; background: #fff; }
 .send-btn { width: 40px; height: 40px; background: linear-gradient(135deg, #0ea5e9, #0284c7); border: none; box-shadow: 0 4px 10px rgba(14, 165, 233, 0.3); }
 </style>
