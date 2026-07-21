@@ -130,7 +130,8 @@ npm run dev
 
 GitHub Actions 会在主分支提交和 Pull Request 上自动执行以下检查：
 
-- Maven `verify`：编译后端、运行测试并生成可执行 JAR。
+- Maven `verify`：编译后端、运行测试、执行订单服务覆盖率门禁并生成可执行 JAR。
+- JaCoCo：订单服务行覆盖率不得低于 90%，分支覆盖率不得低于 65%，CI 会保留 HTML 报告。
 - 两个 Vue 应用执行 `npm ci` 和生产构建。
 - Gitleaks 扫描提交历史中的密钥泄露。
 - Pull Request 依赖审查阻止引入高危漏洞。

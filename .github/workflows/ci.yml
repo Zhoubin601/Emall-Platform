@@ -37,6 +37,14 @@ jobs:
       - name: Test backend
         run: mvn --batch-mode --no-transfer-progress verify
 
+      - name: Upload JaCoCo report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v5
+        with:
+          name: jacoco-report
+          path: mall-backend/target/site/jacoco/
+          retention-days: 14
+
   frontend:
     name: ${{ matrix.app }} · Node 22
     runs-on: ubuntu-latest

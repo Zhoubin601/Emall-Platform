@@ -1,6 +1,15 @@
 # 自动化测试
 
-项目使用 Vitest 测试前端状态管理和路由鉴权，使用 Playwright 在真实 Chromium 中验证前台商城与管理后台的关键登录流程。
+项目使用 JUnit、Mockito 和 JaCoCo 验证后端核心业务，使用 Vitest 测试前端状态管理和路由鉴权，并使用 Playwright 在真实 Chromium 中验证前台商城与管理后台的关键登录流程。
+
+## 后端测试与覆盖率
+
+```bash
+cd mall-backend
+mvn --batch-mode --no-transfer-progress verify
+```
+
+订单服务测试覆盖服务端计价、促销价、优惠券归属与门槛、原子库存扣减、订单状态并发、库存回滚和幂等提交。`verify` 会生成 `target/site/jacoco/index.html`，并要求 `OrderService` 行覆盖率不低于 90%、分支覆盖率不低于 65%。
 
 ## 单元测试
 
