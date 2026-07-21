@@ -11,7 +11,7 @@ cd mall-backend
 mvn --batch-mode --no-transfer-progress verify
 ```
 
-订单服务测试覆盖服务端计价、促销价、优惠券归属与门槛、原子库存扣减、订单状态并发、库存回滚和幂等提交。其中 Testcontainers 集成测试会在真实基础设施中证明并发库存更新只能成功一次、失败订单完整回滚，以及成功订单与 Redis 幂等结果一致。`verify` 会生成 `target/site/jacoco/index.html`，并要求 `OrderService` 行覆盖率不低于 90%、分支覆盖率不低于 65%。
+订单服务测试覆盖服务端计价、促销价、优惠券归属与门槛、原子库存扣减、订单状态并发、库存回滚和幂等提交。其中 Testcontainers 集成测试从空 MySQL 开始执行真实 Flyway 迁移，并证明并发库存更新只能成功一次、失败订单完整回滚，以及成功订单与 Redis 幂等结果一致。`verify` 会生成 `target/site/jacoco/index.html`，并要求 `OrderService` 行覆盖率不低于 90%、分支覆盖率不低于 65%。
 
 ## 单元测试
 

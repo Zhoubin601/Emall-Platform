@@ -95,16 +95,24 @@ cd Emall-Platform
 ```
 
 ### 3. 启动后端服务 (Docker 方式)
-进入 `mall-backend` 目录，我们已经为您配置好了多阶段构建的 `Dockerfile` 和自动初始化数据库的 `docker-compose.yml`。
+进入 `mall-backend` 目录。Docker Compose 会启动 MySQL、Redis 和后端；后端在数据库健康后启动，并由 Flyway 自动创建或升级表结构。
 
 ```bash
 cd mall-backend
-# 创建仅供本机使用的环境变量文件，并填写数据库密码、JWT 密钥、邮箱和邮箱授权码
+# 创建仅供本机使用的环境变量文件
 cp .env.example .env
-# 一键启动 MySQL、Redis 以及 Spring Boot 后端
+# 编辑 .env，至少填写 DB_PASSWORD 和长度不少于 32 字符的 JWT_SECRET
+
+# 构建并启动 MySQL、Redis 与后端
 docker compose up -d --build
+
+# 确认三个服务均为 running/healthy
+docker compose ps
+
+# 查看后端启动与 Flyway 迁移日志
+docker compose logs -f backend
 ```
-> **注意**：`.env` 包含敏感配置，已被 Git 忽略，禁止提交到仓库。首次启动时 Docker 会自动导入数据库初始化脚本并拉取所需镜像，可能需要花费几分钟时间。后端服务默认运行在 `8080` 端口。
+> **注意**：`.env` 包含敏感配置，已被 Git 忽略，禁止提交到仓库。首次启动会拉取镜像并执行 `V0 → V1` 数据库迁移，可能需要几分钟。后端默认运行在 `8080` 端口。
 
 ### 4. 启动前台商城项目 (Client)
 ```bash
@@ -123,6 +131,92 @@ npm ci
 # 启动开发服务器
 npm run dev
 ```
+
+---
+
+## 🗄️ 数据库部署
+
+### 推荐方式：Docker Compose + Flyway
+
+数据库部署不再依赖 mysqldump。MySQL 第一次创建空数据库后，Spring Boot 会自动执行 `mall-backend/src/main/resources/db/migration` 中的版本化迁移：
+
+- `V0__create_base_schema.sql`：创建 16 张基础业务表。
+- `V1__add_order_coupon_and_constraints.sql`：增加订单优惠券字段、订单号唯一索引和优惠券查询索引。
+- `flyway_schema_history`：记录已经执行的版本和校验和；同一迁移只执行一次。
+
+Compose 环境中的关键配置如下：
+
+| 配置 | 默认值/位置 | 说明 |
+| --- | --- | --- |
+| 数据库名 | `emall_db` | MySQL 容器首次启动时创建 |
+| 宿主机端口 | `3307` | 本机工具连接使用 `localhost:3307` |
+| 容器内端口 | `3306` | 后端使用 `mysql:3306` 连接 |
+| 数据目录 | `mall-backend/mysql-data` | 持久化数据库文件，已被 Git 忽略 |
+| `DB_PASSWORD` | `.env` 必填 | MySQL root 密码及后端数据库密码 |
+| `JWT_SECRET` | `.env` 必填 | 至少 32 字符，生产环境必须随机生成 |
+
+可以进入 MySQL 验证迁移结果；`-p` 会交互式询问密码，不要把密码直接写进命令或提交到仓库：
+
+```bash
+docker compose exec mysql mysql -uroot -p emall_db
+```
+
+进入 MySQL 后执行：
+
+```sql
+SHOW TABLES;
+SELECT installed_rank, version, description, success
+FROM flyway_schema_history
+ORDER BY installed_rank;
+```
+
+正常情况下应看到 `V0` 和 `V1` 均成功，且业务表共 16 张。
+
+### 部署到已有或外部 MySQL
+
+1. 先备份现有数据库，并确认目标地址不是生产库的误操作副本。
+2. 创建空数据库：
+
+   ```sql
+   CREATE DATABASE emall_db
+     CHARACTER SET utf8mb4
+     COLLATE utf8mb4_unicode_ci;
+   ```
+
+3. 为后端设置 `DB_URL`、`DB_USERNAME`、`DB_PASSWORD`、`REDIS_HOST` 和 `REDIS_PORT`。
+4. 启动后端。Flyway 会在空库执行全部迁移；对于由旧版 dump 创建且尚无迁移历史的数据库，会先记录基线版本 `0`，再执行 `V1`。
+5. 检查 `flyway_schema_history` 后再开放流量。已经应用过的迁移文件禁止直接修改，应新增更高版本的迁移继续升级。
+
+外部数据库连接示例：
+
+```bash
+export DB_URL='jdbc:mysql://db.example.com:3306/emall_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai'
+export DB_USERNAME='emall_app'
+export DB_PASSWORD='replace-with-a-secret'
+export REDIS_HOST='redis.example.com'
+export REDIS_PORT='6379'
+```
+
+### 创建首个管理员
+
+Flyway 只创建表结构，不写入固定账号或明文密码。首次部署后：
+
+1. 在前台注册一个普通账号，确保密码由应用使用 BCrypt 保存。
+2. 进入 MySQL，将该账号提升为管理员：
+
+   ```sql
+   UPDATE sys_user
+   SET role = 1
+   WHERE username = 'your-admin-username';
+   ```
+
+3. 确认只更新一行，然后使用该账号登录管理后台。不要从旧 dump 导入固定管理员密码。
+
+### 数据持久化与重建提醒
+
+- `docker compose down` 只停止容器，不会删除 `mysql-data` 中的数据。
+- 若要重建空库，请先备份，再将 `mysql-data` 移到安全的备份目录后重新启动；不要直接删除尚未确认的数据库目录。
+- 仓库中的历史 dump 不再由 Compose 自动导入，也不应作为生产部署来源。
 
 ---
 

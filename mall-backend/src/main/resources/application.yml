@@ -29,6 +29,8 @@ spring:
     enabled: true
     baseline-on-migrate: true
     baseline-version: 0
+    validate-migration-naming: true
+    clean-disabled: true
 
   mail:
     host: ${MAIL_HOST:smtp.qq.com}

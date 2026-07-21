@@ -37,11 +37,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @Testcontainers
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 @SpringBootTest(properties = {
-        "spring.flyway.enabled=false",
         "security.jwt.secret=integration-test-secret-key-at-least-32-characters",
         "security.jwt.expiration-ms=3600000",
         "debug=false",
         "logging.level.root=WARN",
+        "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration",
         "mybatis-plus.configuration.log-impl=org.apache.ibatis.logging.nologging.NoLoggingImpl"
 })
 class OrderInfrastructureIntegrationTest {
@@ -51,8 +51,7 @@ class OrderInfrastructureIntegrationTest {
     static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.0.36")
             .withDatabaseName("emall_integration")
             .withUsername("emall")
-            .withPassword("emall-test-password")
-            .withInitScript("db/integration-schema.sql");
+            .withPassword("emall-test-password");
 
     @Container
     static final GenericContainer<?> REDIS = new GenericContainer<>(
@@ -94,6 +93,42 @@ class OrderInfrastructureIntegrationTest {
             connection.serverCommands().flushDb();
             return null;
         });
+    }
+
+    @Test
+    void flywayCreatesTheCompleteSchemaFromAnEmptyDatabase() {
+        assertThat(jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM information_schema.tables
+                WHERE table_schema = DATABASE()
+                  AND table_name IN (
+                    'cms_ad', 'cms_feedback', 'cms_notice',
+                    'oms_order', 'oms_order_item',
+                    'pms_category', 'pms_comment', 'pms_favorite',
+                    'pms_hot_search', 'pms_product', 'pms_sku',
+                    'sms_coupon', 'sms_user_coupon', 'sys_user',
+                    'ums_address', 'ums_user'
+                  )
+                """, Integer.class)).isEqualTo(16);
+        assertThat(jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM flyway_schema_history
+                WHERE success = 1 AND version IN ('0', '1')
+                """, Integer.class)).isEqualTo(2);
+        assertThat(jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM information_schema.columns
+                WHERE table_schema = DATABASE()
+                  AND table_name = 'oms_order'
+                  AND column_name = 'user_coupon_id'
+                """, Integer.class)).isOne();
+        assertThat(jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM information_schema.statistics
+                WHERE table_schema = DATABASE()
+                  AND table_name = 'oms_order'
+                  AND index_name IN ('uk_oms_order_sn', 'idx_oms_order_user_coupon_id')
+                """, Integer.class)).isEqualTo(2);
     }
 
     @Test

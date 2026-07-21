@@ -9,13 +9,23 @@ services:
       - "3307:3306"
     volumes:
       - ./mysql-data:/var/lib/mysql
-      - ./数据库mysqldump文件/emall_docker-2026_06_01_23_36_33-dump.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot --password=\"$${MYSQL_ROOT_PASSWORD}\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
 
   redis:
     image: redis:7.0-alpine
     container_name: emall-redis
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   backend:
     build: .
@@ -23,8 +33,10 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - mysql
-      - redis
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       DB_URL: jdbc:mysql://mysql:3306/emall_db?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
       DB_USERNAME: root
