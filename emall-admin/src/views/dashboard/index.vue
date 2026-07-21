@@ -1,8 +1,28 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, markRaw } from 'vue'
-import * as echarts from 'echarts'
+import * as echarts from 'echarts/core'
+import { BarChart, LineChart, PieChart } from 'echarts/charts'
+import {
+  GridComponent,
+  LegendComponent,
+  TitleComponent,
+  TooltipComponent
+} from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
+import type { EChartsType } from 'echarts/core'
 import { User, ShoppingCart, Money, TrendCharts } from '@element-plus/icons-vue'
 import request from '../../utils/request' // ✨ 新增引入 request
+
+echarts.use([
+  BarChart,
+  LineChart,
+  PieChart,
+  GridComponent,
+  LegendComponent,
+  TitleComponent,
+  TooltipComponent,
+  CanvasRenderer
+])
 
 // ✨ 核心数据指标 (初始化为空)
 const coreMetrics = ref({
@@ -16,7 +36,7 @@ const coreMetrics = ref({
 const trendChartRef = ref<HTMLElement | null>(null)
 const statusChartRef = ref<HTMLElement | null>(null)
 const rankChartRef = ref<HTMLElement | null>(null)
-const charts: any[] = []
+const charts: EChartsType[] = []
 
 // ✨ 新增：拉取后端真实看板数据
 const fetchDashboardData = async () => {
