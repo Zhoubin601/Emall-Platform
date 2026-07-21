@@ -26,8 +26,7 @@ const form = reactive({
 const getSafeAvatar = (avatarPath?: string) => {
   if (!avatarPath || avatarPath.includes('default-avatar.png')) return '' 
   if (avatarPath.startsWith('http')) return avatarPath
-  const fileName = avatarPath.substring(avatarPath.lastIndexOf('/') + 1)
-  return `/uploads/${encodeURIComponent(fileName)}`
+  return avatarPath
 }
 
 const uploadAvatar = async (options: any) => {
@@ -51,7 +50,7 @@ const handleSave = async () => {
   
   loading.value = true
   try {
-    const updateData = { ...form }
+    const updateData: Record<string, unknown> = { ...form }
     if (!updateData.password) {
       delete updateData.password
     }

@@ -32,8 +32,7 @@ const fetchComments = async () => {
 const getSafeUrl = (rawUrl: string) => {
   if (!rawUrl) return ''
   if (rawUrl.startsWith('http')) return rawUrl
-  const fileName = rawUrl.substring(rawUrl.lastIndexOf('/') + 1)
-  return `/uploads/${encodeURIComponent(fileName)}`
+  return rawUrl
 }
 
 const handleDelete = (id: number) => {

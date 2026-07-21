@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref, onMounted } from 'vue'
+import { reactive, ref } from 'vue'
 import { useAdminStore } from '../../stores/admin'
 import request from '../../utils/request'
 import { ElMessage } from 'element-plus'
@@ -23,8 +23,7 @@ const form = reactive({
 const getSafeAvatar = (avatarPath?: string) => {
   if (!avatarPath || avatarPath.includes('default-avatar.png')) return '' 
   if (avatarPath.startsWith('http')) return avatarPath
-  const fileName = avatarPath.substring(avatarPath.lastIndexOf('/') + 1)
-  return `/uploads/${encodeURIComponent(fileName)}`
+  return avatarPath
 }
 
 // ✨ 自定义头像上传逻辑
@@ -48,7 +47,7 @@ const uploadAvatar = async (options: any) => {
 const handleSave = async () => {
   loading.value = true
   try {
-    const updateData = { ...form }
+    const updateData: Record<string, unknown> = { ...form }
     // 如果密码框没填，就从提交数据里删掉，防止把密码改为空
     if (!updateData.password) {
       delete updateData.password

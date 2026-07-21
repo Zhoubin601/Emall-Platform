@@ -1,17 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ShoppingCart, Back, ChatDotRound, Medal, Star, StarFilled, Warning, Clock } from '@element-plus/icons-vue'
+import { ShoppingCart, Back, Medal, Star, StarFilled, Warning, Clock } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import request from '../../utils/request'
 import { useCartStore } from '../../stores/cart'
 import { useUserStore } from '../../stores/user'
-
-interface Product {
-  id: number; name: string; price: number; stock: number; 
-  picUrl?: string; description: string; status: number;
-  promoPrice?: number; promoStartTime?: string; promoEndTime?: string; // ✨ 新增秒杀字段
-}
 
 interface Sku {
   id: number; productId: number; specName: string;

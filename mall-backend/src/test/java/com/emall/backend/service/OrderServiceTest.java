@@ -1,5 +1,7 @@
 package com.emall.backend.service;
 
+import com.emall.backend.dto.order.CreateOrderItemRequest;
+import com.emall.backend.dto.order.CreateOrderRequest;
 import com.emall.backend.entity.Order;
 import com.emall.backend.entity.OrderItem;
 import com.emall.backend.entity.Product;
@@ -72,15 +74,8 @@ class OrderServiceTest {
             return 1;
         }).when(orderMapper).insert(any(Order.class));
 
-        OrderItem submitted = new OrderItem();
-        submitted.setSkuId(3L);
-        submitted.setProductId(999L);
-        submitted.setProductName("伪造商品");
-        submitted.setProductPrice(new BigDecimal("0.01"));
-        submitted.setProductCount(2);
-        Order request = new Order();
-        request.setTotalAmount(new BigDecimal("0.01"));
-        request.setItems(List.of(submitted));
+        CreateOrderRequest request = new CreateOrderRequest(
+                null, List.of(new CreateOrderItemRequest(3L, 2)));
 
         OrderService service = new OrderService(
                 orderMapper, itemMapper, productMapper, skuMapper,

@@ -27,8 +27,7 @@ const fetchMyComments = async () => {
 
 const getSafeUrl = (rawUrl: string) => {
   if (!rawUrl) return ''
-  const fileName = rawUrl.substring(rawUrl.lastIndexOf('/') + 1)
-  return `/uploads/${encodeURIComponent(fileName)}`
+  return rawUrl
 }
 
 const goToEdit = (c: any) => {
@@ -99,7 +98,7 @@ onMounted(() => fetchMyComments())
                 v-for="img in c.pics.split(',')" 
                 :key="img" 
                 :src="getSafeUrl(img)" 
-                :preview-src-list="c.pics.split(',').map(url => getSafeUrl(url))"
+                :preview-src-list="c.pics.split(',').map((url: string) => getSafeUrl(url))"
                 class="comment-img" 
                 fit="cover"
               >

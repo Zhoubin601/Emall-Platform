@@ -9,6 +9,11 @@ security:
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}
 
 spring:
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: ${DB_URL:jdbc:mysql://localhost:3306/emall_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai}
@@ -55,3 +60,7 @@ mybatis-plus:
   global-config:
     db-config:
       id-type: auto # 告诉 MyBatis-Plus 我们的主键是自增的
+
+storage:
+  upload-dir: ${UPLOAD_STORAGE_DIR:/uploads}
+  image-max-size: ${IMAGE_MAX_SIZE:5MB}

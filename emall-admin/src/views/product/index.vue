@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
-import { Search, Plus, UploadFilled, Picture, Operation, Clock, Download, Upload } from '@element-plus/icons-vue'
+import { Search, Plus, Picture, Operation, Clock, Download, Upload } from '@element-plus/icons-vue'
 import request from '../../utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
@@ -78,11 +78,6 @@ const handleStatusChange = async (row: Product) => {
   }
 }
 
-const handleUploadSuccess = (res: any) => {
-  const imgUrl = res.url || res.data?.url || res.data
-  if (imgUrl) { productForm.picUrl = imgUrl; ElMessage.success('主图上传成功') } 
-}
-
 const handleSubmit = async () => {
   if (!productForm.name || !productForm.categoryId) return ElMessage.warning('必填项不能为空')
   submitLoading.value = true
@@ -146,16 +141,6 @@ const fetchSkus = async (pId: number) => { skuLoading.value = true; try { skuLis
 const handleAddSku = () => { isSkuEdit.value = false; Object.assign(skuForm, { id: undefined, productId: activeProduct.value?.id, specName: '', price: activeProduct.value?.price || 0, stock: 0, picUrl: activeProduct.value?.picUrl || '' }); skuDialogVisible.value = true }
 const handleEditSku = (row: Sku) => { isSkuEdit.value = true; Object.assign(skuForm, row); skuDialogVisible.value = true }
 
-// 💥 强化：删除规格后触发全量同步
-const handleDeleteSku = (id: number) => { 
-  ElMessageBox.confirm('确定删除吗？', '提示', { type: 'warning' }).then(async () => { 
-    await request.delete(`/sku/delete/${id}`)
-    await request.get('/product/sync-inventory') // 强制重算总库存并清理缓存
-    fetchSkus(activeProduct.value!.id!) 
-    fetchProducts() // 刷新外层列表，保证数字绝对一致
-  }).catch(() => {}) 
-}
-
 // 💥 强化：保存规格后触发全量同步
 const submitSkuForm = async () => { 
   if (!skuForm.specName) return ElMessage.warning('请填写规格名称')
@@ -172,8 +157,6 @@ const submitSkuForm = async () => {
     fetchProducts() // 刷新外层列表，保证数字绝对一致
   } catch (e) {} 
 }
-
-const handleSkuUploadSuccess = (res: any) => { const imgUrl = res.url || res.data?.url || res.data; if (imgUrl) skuForm.picUrl = imgUrl }
 
 // ================= 秒杀设置模块 =================
 const promoDialogVisible = ref(false)

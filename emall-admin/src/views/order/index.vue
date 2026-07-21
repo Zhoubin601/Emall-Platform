@@ -3,7 +3,7 @@ import { ref, onMounted, reactive } from 'vue'
 import request from '../../utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
 // 引入 Download 图标
-import { Ticket, View, Ship, Delete, Search, Refresh, ArrowDown, Download } from '@element-plus/icons-vue'
+import { Ticket, View, Search, Refresh, ArrowDown, Download } from '@element-plus/icons-vue'
 interface OrderItem {
   id: number;
   orderId: number;

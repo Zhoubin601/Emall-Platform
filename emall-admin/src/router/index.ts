@@ -31,7 +31,7 @@ const routes = [
 
 const router = createRouter({ history: createWebHistory(), routes })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
   const adminStore = useAdminStore()
   if (to.path !== '/login' && !adminStore.token) next('/login')
   else if (to.path === '/login' && adminStore.token) next('/')

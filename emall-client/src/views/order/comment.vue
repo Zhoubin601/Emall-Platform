@@ -33,11 +33,15 @@ const uploadData = computed(() => {
   }
 })
 
+const uploadHeaders = computed(() => {
+  const token = localStorage.getItem('mall-token')
+  return token ? { Authorization: `Bearer ${token}` } : {}
+})
+
 // 安全回显函数：确保中文和空格能正确显示
 const getSafeUrl = (rawUrl: string) => {
   if (!rawUrl) return ''
-  const fileName = rawUrl.substring(rawUrl.lastIndexOf('/') + 1)
-  return `/uploads/${encodeURIComponent(fileName)}`
+  return rawUrl
 }
 
 onMounted(async () => {
@@ -163,6 +167,7 @@ const submitComment = async () => {
           <el-upload
             v-model:file-list="fileList"
             action="/api/file/upload" 
+            :headers="uploadHeaders"
             list-type="picture-card"
             :data="uploadData"
             :limit="3"

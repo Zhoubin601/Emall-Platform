@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue' 
-import { Search, ShoppingCart, User, TopRight, StarFilled, Ticket } from '@element-plus/icons-vue'
+import { Search, ShoppingCart, User, StarFilled, Ticket } from '@element-plus/icons-vue'
 import request from '../../utils/request'
 import { useRouter } from 'vue-router'
 import { useCartStore } from '../../stores/cart'

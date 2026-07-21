@@ -2,6 +2,8 @@ package com.emall.backend.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.emall.backend.entity.*;
+import com.emall.backend.dto.order.CreateOrderItemRequest;
+import com.emall.backend.dto.order.CreateOrderRequest;
 import com.emall.backend.mapper.*;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -54,7 +56,7 @@ public class OrderService {
 
     @Transactional
     @CacheEvict(value = "productList", allEntries = true)
-    public CreatedOrder createOrder(Order request, Long userId, String idempotencyKey) {
+    public CreatedOrder createOrder(CreateOrderRequest request, Long userId, String idempotencyKey) {
         validateIdempotencyKey(idempotencyKey);
         String redisKey = IDEMPOTENCY_PREFIX + userId + ":" + idempotencyKey;
         String existing = redisTemplate.opsForValue().get(redisKey);
@@ -84,20 +86,12 @@ public class OrderService {
             }
         });
 
-        if (request.getItems() == null || request.getItems().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "订单至少需要一件商品");
-        }
-
         LocalDateTime now = LocalDateTime.now().withNano(0);
         List<OrderItem> snapshots = new ArrayList<>();
         BigDecimal subtotal = BigDecimal.ZERO;
 
-        for (OrderItem submittedItem : request.getItems()) {
-            if (submittedItem.getSkuId() == null || submittedItem.getProductCount() == null
-                    || submittedItem.getProductCount() < 1 || submittedItem.getProductCount() > 100) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "商品规格或购买数量不合法");
-            }
-            Sku sku = skuMapper.selectById(submittedItem.getSkuId());
+        for (CreateOrderItemRequest submittedItem : request.items()) {
+            Sku sku = skuMapper.selectById(submittedItem.skuId());
             if (sku == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "商品规格不存在");
             Product product = productMapper.selectById(sku.getProductId());
             if (product == null || product.getStatus() == null || product.getStatus() != 1) {
@@ -110,12 +104,12 @@ public class OrderService {
             snapshot.setSkuId(sku.getId());
             snapshot.setProductName(product.getName() + " (" + sku.getSpecName() + ")");
             snapshot.setProductPrice(unitPrice);
-            snapshot.setProductCount(submittedItem.getProductCount());
+            snapshot.setProductCount(submittedItem.productCount());
             snapshots.add(snapshot);
-            subtotal = subtotal.add(unitPrice.multiply(BigDecimal.valueOf(submittedItem.getProductCount())));
+            subtotal = subtotal.add(unitPrice.multiply(BigDecimal.valueOf(submittedItem.productCount())));
         }
 
-        BigDecimal discount = validateAndConsumeCoupon(request.getUserCouponId(), userId, subtotal, now);
+        BigDecimal discount = validateAndConsumeCoupon(request.userCouponId(), userId, subtotal, now);
         BigDecimal total = subtotal.add(SHIPPING_FEE).subtract(discount)
                 .max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
 
@@ -129,7 +123,7 @@ public class OrderService {
 
         Order order = new Order();
         order.setUserId(userId);
-        order.setUserCouponId(request.getUserCouponId());
+        order.setUserCouponId(request.userCouponId());
         order.setOrderSn(UUID.randomUUID().toString().replace("-", ""));
         order.setTotalAmount(total);
         order.setStatus(OrderStatusPolicy.PENDING_PAYMENT);

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { Back, Plus, Edit, Delete, Location, Check } from '@element-plus/icons-vue'
+import { Back, Plus, Edit, Delete, Check } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '../../utils/request'
 import { useUserStore } from '../../stores/user'

@@ -1,11 +1,18 @@
-import axios from 'axios'
+import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios'
 import { ElMessage } from 'element-plus'
+
+type ApiClient = Omit<AxiosInstance, 'get' | 'post' | 'put' | 'delete'> & {
+  get<T = any, R = T, D = any>(url: string, config?: AxiosRequestConfig<D>): Promise<R>
+  post<T = any, R = T, D = any>(url: string, data?: D, config?: AxiosRequestConfig<D>): Promise<R>
+  put<T = any, R = T, D = any>(url: string, data?: D, config?: AxiosRequestConfig<D>): Promise<R>
+  delete<T = any, R = T, D = any>(url: string, config?: AxiosRequestConfig<D>): Promise<R>
+}
 
 // 1. 创建 axios 实例
 const request = axios.create({
   baseURL: '/api',
   timeout: 5000 // 请求超时时间
-})
+}) as ApiClient
 
 // 2. 请求拦截器 (可以在这里统一带上 Token)
 request.interceptors.request.use(

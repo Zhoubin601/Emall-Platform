@@ -4,8 +4,10 @@ import com.alibaba.excel.EasyExcel;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.emall.backend.entity.*;
+import com.emall.backend.dto.order.CreateOrderRequest;
 import com.emall.backend.mapper.*;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.util.StringUtils;
@@ -45,7 +47,7 @@ public class OrderController {
 
     @PostMapping("/create")
     public OrderService.CreatedOrder createOrder(
-            @RequestBody Order order,
+            @Valid @RequestBody CreateOrderRequest order,
             @RequestHeader("Idempotency-Key") String idempotencyKey,
             Authentication authentication) {
         Long userId = authorizationService.currentUser(authentication).id();

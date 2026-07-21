@@ -2,6 +2,9 @@ package com.emall.backend.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.emall.backend.entity.User;
+import com.emall.backend.dto.user.LoginRequest;
+import com.emall.backend.dto.user.RegisterRequest;
+import com.emall.backend.dto.user.ResetPasswordRequest;
 import com.emall.backend.mapper.UserMapper;
 import com.emall.backend.security.AuthenticatedUser;
 import com.emall.backend.security.JwtService;
@@ -14,6 +17,11 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.validation.annotation.Validated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -26,6 +34,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @RestController
 @RequestMapping("/api/user")
+@Validated
 public class UserController {
 
     @Autowired
@@ -64,7 +73,7 @@ public class UserController {
         // 校验账号是否重复
         Long count = userMapper.selectCount(new QueryWrapper<User>().eq("username", user.getUsername()));
         if (count > 0) {
-            throw new RuntimeException("该登录账号已存在，请换一个");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "该登录账号已存在，请换一个");
         }
 
         validatePassword(user.getPassword());
@@ -93,7 +102,10 @@ public class UserController {
      * 4. 发送验证码
      */
     @PostMapping("/sendCode")
-    public String sendCode(@RequestParam String email) {
+    public String sendCode(
+            @RequestParam
+            @NotBlank(message = "邮箱不能为空")
+            @Email(message = "邮箱格式不正确") String email) {
         String normalizedEmail = normalizeEmail(email);
         Instant now = Instant.now();
         VerificationCode existing = codeCache.get(normalizedEmail);
@@ -124,19 +136,18 @@ public class UserController {
      * 5. 买家注册
      */
     @PostMapping("/register")
-    public String register(@RequestBody RegisterRequest request) {
-        String normalizedEmail = verifyCode(request.getEmail(), request.getCode());
+    public String register(@Valid @RequestBody RegisterRequest request) {
+        String normalizedEmail = verifyCode(request.email(), request.code());
 
-        Long count = userMapper.selectCount(new QueryWrapper<User>().eq("username", request.getUsername()));
+        Long count = userMapper.selectCount(new QueryWrapper<User>().eq("username", request.username()));
         if (count > 0) {
-            throw new RuntimeException("该登录账号(Username)已存在");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "该登录账号已存在");
         }
 
         User user = new User();
-        user.setUsername(request.getUsername());
-        user.setNickname(request.getNickname());
-        validatePassword(request.getPassword());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setUsername(request.username());
+        user.setNickname(request.nickname());
+        user.setPassword(passwordEncoder.encode(request.password()));
         user.setEmail(normalizedEmail);
         user.setRole(0); // 默认买家
         user.setAvatar("/uploads/default-avatar.png");
@@ -150,8 +161,8 @@ public class UserController {
      * 6. 统一登录
      */
     @PostMapping("/login")
-    public AuthResponse login(@RequestBody User user) {
-        User dbUser = authenticate(user.getUsername(), user.getPassword(), false);
+    public AuthResponse login(@Valid @RequestBody LoginRequest user) {
+        User dbUser = authenticate(user.username(), user.password(), false);
         return new AuthResponse(jwtService.issueToken(dbUser), dbUser);
     }
 
@@ -159,8 +170,8 @@ public class UserController {
      * 7. 管理员专用登录 (带权限校验)
      */
     @PostMapping("/adminLogin")
-    public AuthResponse adminLogin(@RequestBody User user) {
-        User dbUser = authenticate(user.getUsername(), user.getPassword(), true);
+    public AuthResponse adminLogin(@Valid @RequestBody LoginRequest user) {
+        User dbUser = authenticate(user.username(), user.password(), true);
         return new AuthResponse(jwtService.issueToken(dbUser), dbUser);
     }
 
@@ -200,13 +211,12 @@ public class UserController {
      * 9. 找回密码
      */
     @PostMapping("/resetPassword")
-    public String resetPassword(@RequestBody RegisterRequest request) {
-        String normalizedEmail = verifyCode(request.getEmail(), request.getCode());
+    public String resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        String normalizedEmail = verifyCode(request.email(), request.code());
         User user = userMapper.selectOne(new QueryWrapper<User>().eq("email", normalizedEmail));
-        if (user == null) throw new RuntimeException("该邮箱未注册");
+        if (user == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "该邮箱未注册");
 
-        validatePassword(request.getPassword());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setPassword(passwordEncoder.encode(request.password()));
         userMapper.updateById(user);
         codeCache.remove(normalizedEmail);
         return "重置成功";
@@ -278,22 +288,4 @@ public class UserController {
     public record AuthResponse(String token, User user) {}
     private record VerificationCode(String code, Instant sentAt, Instant expiresAt) {}
 
-    // 数据传输对象
-    public static class RegisterRequest {
-        private String username;
-        private String nickname;
-        private String email;
-        private String password;
-        private String code;
-        public String getUsername() { return username; }
-        public void setUsername(String username) { this.username = username; }
-        public String getNickname() { return nickname; }
-        public void setNickname(String nickname) { this.nickname = nickname; }
-        public String getEmail() { return email; }
-        public void setEmail(String email) { this.email = email; }
-        public String getPassword() { return password; }
-        public void setPassword(String password) { this.password = password; }
-        public String getCode() { return code; }
-        public void setCode(String code) { this.code = code; }
-    }
 }
