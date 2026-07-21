@@ -65,5 +65,48 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
+      - name: Run unit tests
+        run: npm test
+
       - name: Build frontend
         run: npm run build
+
+  e2e:
+    name: End-to-end · Chromium
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: frontend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            emall-client/package-lock.json
+            emall-admin/package-lock.json
+
+      - name: Install locked dependencies
+        run: |
+          npm ci
+          npm ci --prefix emall-client
+          npm ci --prefix emall-admin
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run browser smoke tests
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v5
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { ElMessage } from 'element-plus'
+import { readStoredJson } from '../utils/storage'
 
 export interface CartItem {
   id: number
@@ -15,7 +16,8 @@ export interface CartItem {
 }
 
 export const useCartStore = defineStore('cart', () => {
-  const items = ref<CartItem[]>(JSON.parse(localStorage.getItem('mall_cart') || '[]'))
+  const storedItems = readStoredJson<unknown>('mall_cart', [])
+  const items = ref<CartItem[]>(Array.isArray(storedItems) ? storedItems : [])
 
   const saveCart = () => {
     localStorage.setItem('mall_cart', JSON.stringify(items.value))
@@ -23,6 +25,10 @@ export const useCartStore = defineStore('cart', () => {
 
   // ✨ 核心修改：接收 skuId
   const addToCart = (product: any, count: number = 1, spec: string = '默认规格', skuId: number = 0) => {
+    if (!Number.isInteger(count) || count < 1 || count > Number(product.stock || 0)) {
+      ElMessage.warning('购买数量超出该规格库存限制！')
+      return
+    }
     // 查找购物车中是否已有 [同商品 + 同规格] 的记录
     const existItem = items.value.find(item => item.id === product.id && item.skuId === skuId)
     

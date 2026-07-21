@@ -80,10 +80,19 @@ const protectedRouteNames = new Set([
   'OrderComment', 'OrderList', 'MyComments'
 ])
 
+export function resolveClientRedirect(
+  routeName: unknown,
+  requiresAuth: boolean,
+  token: string
+): string | undefined {
+  const needsLogin = requiresAuth || protectedRouteNames.has(String(routeName))
+  if (needsLogin && !token) return '/login'
+  if (routeName === 'Login' && token) return '/'
+}
+
 router.beforeEach((to) => {
   const token = localStorage.getItem('mall-token')
-  if (protectedRouteNames.has(String(to.name)) && !token) return '/login'
-  if (to.name === 'Login' && token) return '/'
+  return resolveClientRedirect(to.name, Boolean(to.meta.requiresAuth), token || '')
 })
 
 export default router

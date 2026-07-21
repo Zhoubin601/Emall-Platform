@@ -31,11 +31,14 @@ const routes = [
 
 const router = createRouter({ history: createWebHistory(), routes })
 
-router.beforeEach((to, _from, next) => {
+export function resolveAdminRedirect(path: string, token: string): string | undefined {
+  if (path !== '/login' && !token) return '/login'
+  if (path === '/login' && token) return '/'
+}
+
+router.beforeEach((to) => {
   const adminStore = useAdminStore()
-  if (to.path !== '/login' && !adminStore.token) next('/login')
-  else if (to.path === '/login' && adminStore.token) next('/')
-  else next()
+  return resolveAdminRedirect(to.path, adminStore.token)
 })
 
 export default router

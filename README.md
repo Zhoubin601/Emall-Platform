@@ -3,6 +3,8 @@
 [![CI](https://github.com/Zhoubin601/Emall-Platform/actions/workflows/ci.yml/badge.svg)](https://github.com/Zhoubin601/Emall-Platform/actions/workflows/ci.yml)
 [![Security](https://github.com/Zhoubin601/Emall-Platform/actions/workflows/security.yml/badge.svg)](https://github.com/Zhoubin601/Emall-Platform/actions/workflows/security.yml)
 
+[自动化测试说明](TESTING.md)
+
 这是一个基于现代化技术栈构建的 B2C 全栈电商平台（包含前台商城、后台管理系统以及 Java 后端服务）。项目设计采用了前后端分离架构，提供了完整的商品购买、订单处理、后台管理等电商核心链路功能。
 
 ---

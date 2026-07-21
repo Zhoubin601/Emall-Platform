@@ -1,0 +1,13 @@
+{
+  "name": "emall-platform-tests",
+  "private": true,
+  "scripts": {
+    "test": "npm run test:unit",
+    "test:unit": "npm test --prefix emall-client && npm test --prefix emall-admin",
+    "test:e2e": "playwright test",
+    "test:all": "npm run test:unit && npm run test:e2e"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1"
+  }
+}
