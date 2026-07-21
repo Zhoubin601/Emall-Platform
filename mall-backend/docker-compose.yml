@@ -1,10 +1,9 @@
-version: '3.8'
 services:
   mysql:
     image: mysql:8.0
     container_name: emall-mysql
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in mall-backend/.env}
       MYSQL_DATABASE: emall_db
     ports:
       - "3307:3306"
@@ -27,8 +26,12 @@ services:
       - mysql
       - redis
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/emall_db?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
-      - SPRING_DATA_REDIS_HOST=redis
+      DB_URL: jdbc:mysql://mysql:3306/emall_db?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+      DB_USERNAME: root
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in mall-backend/.env}
+      REDIS_HOST: redis
+      MAIL_HOST: ${MAIL_HOST:-smtp.qq.com}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
     volumes:
-          - D:/emall_data/photo:/uploads  # 确保 D:/emall_data/photo 是你电脑真实的路径
-          # ------------------
+      - ${UPLOAD_DIR:-./uploads}:/uploads

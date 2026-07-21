@@ -4,17 +4,19 @@ server:
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    # 注意：这里的 root 和 123456 必须改成你本地 MySQL 的真实账号密码！
-    # 修改前：jdbc:mysql://localhost:3306/emall_db...
-    # 修改后：
-    url: jdbc:mysql://mysql:3306/emall_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
-    username: root
-    password: root
+    url: ${DB_URL:jdbc:mysql://localhost:3306/emall_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
 
   mail:
-    host: smtp.qq.com
-    username: 3185130953@qq.com # 替换为您的 QQ 邮箱
-    password: arvyjpmrcjbjdhab    # 替换为 QQ 邮箱生成的“授权码”
+    host: ${MAIL_HOST:smtp.qq.com}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
     default-encoding: UTF-8
     properties:
       mail:
@@ -24,6 +26,16 @@ spring:
             enable: true
             required: true
 
+  cache:
+    type: redis
+    cache-names:
+      - productList
+      - categoryList
+      - hotSearches
+    redis:
+      time-to-live: 3600000
+      cache-null-values: true
+
 mybatis-plus:
   configuration:
     # 开启 SQL 日志输出，我们在 IDEA 控制台就能看到它执行了什么 SQL，排错神器
@@ -31,19 +43,3 @@ mybatis-plus:
   global-config:
     db-config:
       id-type: auto # 告诉 MyBatis-Plus 我们的主键是自增的
-cache:
-  type: redis  # 明确指定使用 redis 作为缓存实现
-  cache-names: # 重点：在这里列出你代码里用到的所有缓存名字
-    - productList
-    - categoryList
-    - hotSearches
-  redis:
-    time-to-live: 3600000  # 缓存过期时间（单位毫秒，这里设为 1 小时）
-    cache-null-values: true
-services:
-  backend:
-    # ... 其他配置 ...
-    volumes:
-      - ./target/mall-backend-1.0-SNAPSHOT.jar:/app.jar
-      # ✅ 建立映射：Windows 路径 : 容器路径
-      - D:/emall_data/photo:/uploads

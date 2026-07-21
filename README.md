@@ -83,10 +83,12 @@ cd Emall-Platform
 
 ```bash
 cd mall-backend
+# 创建仅供本机使用的环境变量文件，并填写数据库密码、邮箱和邮箱授权码
+cp .env.example .env
 # 一键启动 MySQL、Redis 以及 Spring Boot 后端
 docker-compose up -d --build
 ```
-> **注意**：首次启动时 Docker 会自动导入 `mysql-data` 目录下的 SQL 初始化脚本，并拉取所需的镜像，可能需要花费几分钟时间。后端服务默认运行在 `8080` 端口。
+> **注意**：`.env` 包含敏感配置，已被 Git 忽略，禁止提交到仓库。首次启动时 Docker 会自动导入数据库初始化脚本并拉取所需镜像，可能需要花费几分钟时间。后端服务默认运行在 `8080` 端口。
 
 ### 4. 启动前台商城项目 (Client)
 ```bash

@@ -18,6 +18,12 @@ target/
 # MySQL data
 mysql-data/
 
+# Local secrets and uploaded files
+.env
+.env.*
+!.env.example
+uploads/
+
 # OS files
 .DS_Store
 Thumbs.db
