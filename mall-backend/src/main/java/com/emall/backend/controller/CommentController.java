@@ -7,7 +7,11 @@ import com.emall.backend.mapper.CommentMapper;
 import com.emall.backend.mapper.OrderMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import com.emall.backend.security.AuthorizationService;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -23,6 +27,8 @@ public class CommentController {
     // ✨ 1. 在类顶部注入商品 Mapper
     @Autowired
     private com.emall.backend.mapper.ProductMapper productMapper;
+    @Autowired
+    private AuthorizationService authorizationService;
 
     // ✨ 2. 修改获取全站评价列表的方法
     @GetMapping("/list")
@@ -49,7 +55,11 @@ public class CommentController {
     // 1. 发布评价并锁定订单状态
     @PostMapping("/add")
     @Transactional
-    public String add(@RequestBody Comment comment) {
+    public String add(@RequestBody Comment comment, Authentication authentication) {
+        Order ownedOrder = orderMapper.selectById(comment.getOrderId());
+        if (ownedOrder == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "订单不存在");
+        authorizationService.requireOwnerOrAdmin(authentication, ownedOrder.getUserId());
+        comment.setUserId(ownedOrder.getUserId());
         // 1. 保存评价（评价表里记录了 order_id）
         commentMapper.insert(comment);
 
@@ -64,24 +74,37 @@ public class CommentController {
 
     // 2. ✨ 修复 404：获取当前用户的评价列表
     @GetMapping("/my")
-    public List<Comment> getMyComments(@RequestParam Long userId) {
+    public List<Comment> getMyComments(@RequestParam Long userId, Authentication authentication) {
+        userId = authorizationService.requireSelfOrAdmin(authentication, userId);
         return commentMapper.selectMyComments(userId); // ✨ 调用联表查询
     }
 
     // 3. ✨ 获取评价详情（用于修改评价时的回显）
     @GetMapping("/detail/{id}")
-    public Comment getDetail(@PathVariable Long id) {
-        return commentMapper.selectById(id);
+    public Comment getDetail(@PathVariable Long id, Authentication authentication) {
+        Comment comment = commentMapper.selectById(id);
+        if (comment == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "评价不存在");
+        authorizationService.requireOwnerOrAdmin(authentication, comment.getUserId());
+        return comment;
     }
     // 在 CommentController.java 中追加此方法
     @DeleteMapping("/{id}")
-    public String deleteComment(@PathVariable Long id) {
+    public String deleteComment(@PathVariable Long id, Authentication authentication) {
+        Comment existing = commentMapper.selectById(id);
+        if (existing == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "评价不存在");
+        authorizationService.requireOwnerOrAdmin(authentication, existing.getUserId());
         // 调用 MyBatis-Plus 提供的 deleteById 直接删除数据库中的评价记录
         commentMapper.deleteById(id);
         return "评价删除成功";
     }
     @PostMapping("/update")
-    public String update(@RequestBody Comment comment) {
+    public String update(@RequestBody Comment comment, Authentication authentication) {
+        Comment existing = commentMapper.selectById(comment.getId());
+        if (existing == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "评价不存在");
+        authorizationService.requireOwnerOrAdmin(authentication, existing.getUserId());
+        comment.setUserId(existing.getUserId());
+        comment.setOrderId(existing.getOrderId());
+        comment.setProductId(existing.getProductId());
         // ✨ 核心修复：手动将时间设置为“现在”
         // 这样每次点击“保存修改”，时间都会跳到当前最新的系统时间
         comment.setCreateTime(java.time.LocalDateTime.now());

@@ -181,10 +181,6 @@ const handlePaid = async () => {
     // 1. 同步订单状态为“已支付” (status = 1)
     await request.put(`/order/status/${currentOrderId.value}/1`)
     
-    // 2. 🔥 绝杀操作：呼叫后端执行“全库库存强力校对”！
-    // 不管刚才扣减得对不对，这行代码一执行，所有主表库存全部强制等于 SKU 之和！
-    await request.get('/product/sync-inventory')
-    
     ElMessage.success('支付成功！')
     showPayDialog.value = false
     router.push('/orders')

@@ -75,4 +75,15 @@ const router = createRouter({
   routes
 })
 
+const protectedRouteNames = new Set([
+  'Cart', 'Profile', 'Checkout', 'Address', 'Favorites',
+  'OrderComment', 'OrderList', 'MyComments'
+])
+
+router.beforeEach((to) => {
+  const token = localStorage.getItem('mall-token')
+  if (protectedRouteNames.has(String(to.name)) && !token) return '/login'
+  if (to.name === 'Login' && token) return '/'
+})
+
 export default router

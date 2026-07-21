@@ -45,7 +45,10 @@ const userForm = reactive<SysUser>({
 // 表单校验规则
 const rules = {
   username: [{ required: true, message: '请输入登录账号', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入初始密码', trigger: 'blur' }],
+  password: [
+    { required: true, message: '请输入初始密码', trigger: 'blur' },
+    { min: 8, max: 72, message: '密码长度必须为 8 到 72 个字符', trigger: 'blur' }
+  ],
   role: [{ required: true, message: '请选择角色权限', trigger: 'change' }]
 }
 

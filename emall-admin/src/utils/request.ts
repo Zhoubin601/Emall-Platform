@@ -3,15 +3,15 @@ import { ElMessage } from 'element-plus'
 
 // 1. 创建 axios 实例
 const request = axios.create({
-  // 这里填入你 Spring Boot 后端的地址
-  baseURL: 'http://localhost:8080/api',
+  baseURL: '/api',
   timeout: 5000 // 请求超时时间
 })
 
 // 2. 请求拦截器 (可以在这里统一带上 Token)
 request.interceptors.request.use(
   config => {
-    // 比如：config.headers['Authorization'] = 'Bearer ' + localStorage.getItem('token')
+    const token = localStorage.getItem('admin-token')
+    if (token) config.headers.Authorization = `Bearer ${token}`
     return config
   },
   error => {
@@ -26,7 +26,16 @@ request.interceptors.response.use(
     return response.data
   },
   error => {
-    ElMessage.error(error.message || '网络请求失败，请检查后端是否启动')
+    if (error.response?.status === 401) {
+      localStorage.removeItem('admin-token')
+      localStorage.removeItem('admin-info')
+      if (window.location.pathname !== '/login') {
+        ElMessage.warning('登录已失效，请重新登录')
+        window.location.assign('/login')
+      }
+    } else {
+      ElMessage.error(error.response?.data?.message || error.message || '网络请求失败，请检查后端是否启动')
+    }
     return Promise.reject(error)
   }
 )

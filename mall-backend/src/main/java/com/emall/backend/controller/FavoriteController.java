@@ -6,7 +6,9 @@ import com.emall.backend.entity.Product;
 import com.emall.backend.mapper.FavoriteMapper;
 import com.emall.backend.mapper.ProductMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import com.emall.backend.security.AuthorizationService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,10 +20,13 @@ public class FavoriteController {
     @Autowired private FavoriteMapper favoriteMapper;
     @Autowired
     private ProductMapper productMapper;
+    @Autowired
+    private AuthorizationService authorizationService;
 
     // 切换收藏状态：收藏 <-> 取消
     @PostMapping("/toggle")
-    public String toggle(@RequestBody Favorite favorite) {
+    public String toggle(@RequestBody Favorite favorite, Authentication authentication) {
+        favorite.setUserId(authorizationService.requireSelfOrAdmin(authentication, favorite.getUserId()));
         QueryWrapper<Favorite> wrapper = new QueryWrapper<Favorite>()
                 .eq("user_id", favorite.getUserId())
                 .eq("product_id", favorite.getProductId());
@@ -37,7 +42,8 @@ public class FavoriteController {
 
     // 获取当前用户的所有收藏商品详情
     @GetMapping("/list")
-    public List<Product> list(@RequestParam Long userId) {
+    public List<Product> list(@RequestParam Long userId, Authentication authentication) {
+        userId = authorizationService.requireSelfOrAdmin(authentication, userId);
         // 这里采用简单的两步查询，也可以写 Join 语句
         List<Favorite> favorites = favoriteMapper.selectList(new QueryWrapper<Favorite>().eq("user_id", userId));
         if (favorites.isEmpty()) return new ArrayList<>();
@@ -47,7 +53,8 @@ public class FavoriteController {
 
     // 检查某个商品是否已被当前用户收藏
     @GetMapping("/status")
-    public Boolean checkStatus(@RequestParam Long userId, @RequestParam Long productId) {
+    public Boolean checkStatus(@RequestParam Long userId, @RequestParam Long productId, Authentication authentication) {
+        userId = authorizationService.requireSelfOrAdmin(authentication, userId);
         return favoriteMapper.selectCount(new QueryWrapper<Favorite>()
                 .eq("user_id", userId).eq("product_id", productId)) > 0;
     }

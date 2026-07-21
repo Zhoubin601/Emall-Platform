@@ -12,7 +12,8 @@ const request = axios.create({
 // 2. 请求拦截器 (可以在这里统一带上 Token)
 request.interceptors.request.use(
   config => {
-    // 比如：config.headers['Authorization'] = 'Bearer ' + localStorage.getItem('token')
+    const token = localStorage.getItem('mall-token')
+    if (token) config.headers.Authorization = `Bearer ${token}`
     return config
   },
   error => {
@@ -27,7 +28,16 @@ request.interceptors.response.use(
     return response.data
   },
   error => {
-    ElMessage.error(error.message || '网络请求失败，请检查后端是否启动')
+    if (error.response?.status === 401) {
+      localStorage.removeItem('mall-token')
+      localStorage.removeItem('mall_user')
+      if (window.location.pathname !== '/login') {
+        ElMessage.warning('登录已失效，请重新登录')
+        window.location.assign('/login')
+      }
+    } else {
+      ElMessage.error(error.response?.data?.message || error.message || '网络请求失败，请检查后端是否启动')
+    }
     return Promise.reject(error)
   }
 )

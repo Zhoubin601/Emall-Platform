@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.core.Authentication;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,6 +17,9 @@ import java.net.URLEncoder;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import com.emall.backend.security.AuthorizationService;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/order")
@@ -39,16 +43,22 @@ public class OrderController {
     // ✨ 注入 RedisTemplate，用于下单后清理商品缓存
     @Autowired
     private StringRedisTemplate redisTemplate;
+    @Autowired
+    private AuthorizationService authorizationService;
 
     @DeleteMapping("/{id}")
-    public String deleteOrder(@PathVariable Long id) {
+    public String deleteOrder(@PathVariable Long id, Authentication authentication) {
+        Order existing = orderMapper.selectById(id);
+        if (existing == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "订单不存在");
+        authorizationService.requireOwnerOrAdmin(authentication, existing.getUserId());
         orderMapper.deleteById(id);
         return "订单删除成功";
     }
 
     @PostMapping("/create")
     @Transactional // 开启事务
-    public Long createOrder(@RequestBody Order order) {
+    public Long createOrder(@RequestBody Order order, Authentication authentication) {
+        order.setUserId(authorizationService.currentUser(authentication).id());
         order.setOrderSn(UUID.randomUUID().toString().replace("-", ""));
 
         // ✨ 修复：时间精确到秒，配合数据库默认设置，防止订单乱序
@@ -129,7 +139,10 @@ public class OrderController {
     }
 
     @PutMapping("/status/{id}/{status}")
-    public String updateStatus(@PathVariable Long id, @PathVariable Integer status) {
+    public String updateStatus(@PathVariable Long id, @PathVariable Integer status, Authentication authentication) {
+        Order existing = orderMapper.selectById(id);
+        if (existing == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "订单不存在");
+        authorizationService.requireOwnerOrAdmin(authentication, existing.getUserId());
         Order order = new Order();
         order.setId(id);
         order.setStatus(status);
@@ -164,7 +177,8 @@ public class OrderController {
     }
 
     @GetMapping("/my")
-    public List<Order> getMyOrders(@RequestParam Long userId) {
+    public List<Order> getMyOrders(@RequestParam Long userId, Authentication authentication) {
+        userId = authorizationService.requireSelfOrAdmin(authentication, userId);
         // ✨ 修复：增加排序逻辑，确保“我的订单”永远最新的排在最上面
         return orderMapper.selectList(new QueryWrapper<Order>()
                 .eq("user_id", userId)
@@ -172,9 +186,10 @@ public class OrderController {
     }
 
     @GetMapping("/detail/{id}")
-    public Order getOrderDetail(@PathVariable Long id) {
+    public Order getOrderDetail(@PathVariable Long id, Authentication authentication) {
         Order order = orderMapper.selectById(id);
         if (order != null) {
+            authorizationService.requireOwnerOrAdmin(authentication, order.getUserId());
             List<OrderItem> items = itemMapper.selectList(
                     new QueryWrapper<OrderItem>().eq("order_id", id)
             );

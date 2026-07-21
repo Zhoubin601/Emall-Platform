@@ -19,7 +19,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @RestController
-@CrossOrigin
 @RequestMapping("/api/dashboard")
 public class DashboardController {
 

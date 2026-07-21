@@ -6,7 +6,10 @@ import com.emall.backend.entity.Notice;
 import com.emall.backend.mapper.FeedbackMapper;
 import com.emall.backend.mapper.NoticeMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import com.emall.backend.security.AuthenticatedUser;
+import com.emall.backend.security.AuthorizationService;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -14,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@CrossOrigin
 @RequestMapping("/api/interaction")
 public class InteractionController {
 
@@ -22,17 +24,22 @@ public class InteractionController {
     private FeedbackMapper feedbackMapper;
     @Autowired
     private NoticeMapper noticeMapper;
+    @Autowired
+    private AuthorizationService authorizationService;
 
     // === 🔽 以下为旧版兼容接口 (绝对保留，不破坏原有逻辑) 🔽 ===
     @PostMapping("/feedback/submit")
-    public String submitFeedback(@RequestBody Feedback feedback) {
+    public String submitFeedback(@RequestBody Feedback feedback, Authentication authentication) {
+        feedback.setUserId(authorizationService.currentUser(authentication).id());
+        feedback.setSenderRole(0);
         feedback.setStatus(0);
         feedbackMapper.insert(feedback);
         return "提交成功，客服将尽快为您解答！";
     }
 
     @GetMapping("/feedback/my")
-    public List<Feedback> getMyFeedbacks(@RequestParam Long userId) {
+    public List<Feedback> getMyFeedbacks(@RequestParam Long userId, Authentication authentication) {
+        userId = authorizationService.requireSelfOrAdmin(authentication, userId);
         return feedbackMapper.selectList(new QueryWrapper<Feedback>().eq("user_id", userId).orderByDesc("create_time"));
     }
 
@@ -57,15 +64,24 @@ public class InteractionController {
 
     // === 🔽 实时聊天引擎接口 🔽 ===
     @GetMapping("/chat/history")
-    public List<Feedback> getChatHistory(@RequestParam Long userId) {
+    public List<Feedback> getChatHistory(@RequestParam Long userId, Authentication authentication) {
+        userId = authorizationService.requireSelfOrAdmin(authentication, userId);
         return feedbackMapper.selectList(new QueryWrapper<Feedback>()
                 .eq("user_id", userId)
                 .orderByAsc("create_time"));
     }
 
     @PostMapping("/chat/send")
-    public String sendChat(@RequestBody Feedback chat) {
-        if (chat.getSenderRole() == null) {
+    public String sendChat(@RequestBody Feedback chat, Authentication authentication) {
+        AuthenticatedUser currentUser = authorizationService.currentUser(authentication);
+        if (currentUser.isAdmin()) {
+            if (chat.getUserId() == null) {
+                throw new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.BAD_REQUEST, "缺少接收用户");
+            }
+            chat.setSenderRole(1);
+        } else {
+            chat.setUserId(currentUser.id());
             chat.setSenderRole(0);
         }
         chat.setStatus(1);

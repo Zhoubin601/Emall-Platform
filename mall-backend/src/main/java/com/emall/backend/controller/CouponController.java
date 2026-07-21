@@ -6,7 +6,9 @@ import com.emall.backend.entity.UserCoupon;
 import com.emall.backend.mapper.CouponMapper;
 import com.emall.backend.mapper.UserCouponMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import com.emall.backend.security.AuthorizationService;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,7 +16,6 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@CrossOrigin
 @RequestMapping("/api/coupon")
 public class CouponController {
 
@@ -23,6 +24,8 @@ public class CouponController {
 
     @Autowired
     private UserCouponMapper userCouponMapper;
+    @Autowired
+    private AuthorizationService authorizationService;
 
     // 1. 获取所有可领取的优惠券 (用于首页/详情页领券中心展示)
     @GetMapping("/list")
@@ -32,7 +35,8 @@ public class CouponController {
 
     // 2. 用户领券接口 (支持复购领券逻辑)
     @PostMapping("/claim")
-    public String claimCoupon(@RequestParam Long userId, @RequestParam Long couponId) {
+    public String claimCoupon(@RequestParam Long userId, @RequestParam Long couponId, Authentication authentication) {
+        userId = authorizationService.requireSelfOrAdmin(authentication, userId);
         // ✨ 核心升级：只检查用户包里是否还有【未使用】的这张券
         UserCoupon existUnused = userCouponMapper.selectOne(
                 new QueryWrapper<UserCoupon>()
@@ -57,7 +61,8 @@ public class CouponController {
 
     // 3. ✨ 获取用户当前【未使用】的优惠券及详情 (用于结算页面满减计算)
     @GetMapping("/myUsable")
-    public List<Map<String, Object>> getMyUsableCoupons(@RequestParam Long userId) {
+    public List<Map<String, Object>> getMyUsableCoupons(@RequestParam Long userId, Authentication authentication) {
+        userId = authorizationService.requireSelfOrAdmin(authentication, userId);
         List<Map<String, Object>> result = new ArrayList<>();
 
         // 查出该用户所有未使用的领券记录

@@ -45,6 +45,7 @@ const handleRegister = async () => {
   if (!regForm.username || !regForm.nickname || !regForm.code || !regForm.password) {
     return ElMessage.warning('请将注册信息填写完整')
   }
+  if (regForm.password.length < 8) return ElMessage.warning('密码至少需要 8 个字符')
   loading.value = true
   try {
     await request.post('/user/register', regForm)
@@ -62,8 +63,8 @@ const handleLogin = async () => {
   loading.value = true
   try {
     const res: any = await request.post('/user/login', loginForm)
-    userStore.setUser(res)
-    ElMessage.success(`欢迎回来，${res.nickname || res.username}`)
+    userStore.setLogin(res.token, res.user)
+    ElMessage.success(`欢迎回来，${res.user.nickname || res.user.username}`)
     router.push('/')
   } catch (e) { ElMessage.error('登录失败：账号或密码错误') }
   finally { loading.value = false }
@@ -74,6 +75,7 @@ const handleResetPassword = async () => {
   if (!resetForm.email || !resetForm.code || !resetForm.password) {
     return ElMessage.warning('请将验证信息填写完整')
   }
+  if (resetForm.password.length < 8) return ElMessage.warning('密码至少需要 8 个字符')
   loading.value = true
   try {
     // 你的后端刚好是用 RegisterRequest 接收的，包含 email, code, password

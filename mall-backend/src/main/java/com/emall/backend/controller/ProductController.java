@@ -25,7 +25,6 @@ import java.util.stream.Collectors;
 import com.emall.backend.entity.Category;
 import com.emall.backend.mapper.CategoryMapper;
 @RestController
-@CrossOrigin
 @RequestMapping("/api/product")
 public class ProductController {
 

@@ -83,7 +83,7 @@ cd Emall-Platform
 
 ```bash
 cd mall-backend
-# 创建仅供本机使用的环境变量文件，并填写数据库密码、邮箱和邮箱授权码
+# 创建仅供本机使用的环境变量文件，并填写数据库密码、JWT 密钥、邮箱和邮箱授权码
 cp .env.example .env
 # 一键启动 MySQL、Redis 以及 Spring Boot 后端
 docker-compose up -d --build
