@@ -20,6 +20,11 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
 
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
+
   mail:
     host: ${MAIL_HOST:smtp.qq.com}
     username: ${MAIL_USERNAME:}

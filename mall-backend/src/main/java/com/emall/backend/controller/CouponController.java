@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import com.emall.backend.security.AuthorizationService;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -37,6 +39,11 @@ public class CouponController {
     @PostMapping("/claim")
     public String claimCoupon(@RequestParam Long userId, @RequestParam Long couponId, Authentication authentication) {
         userId = authorizationService.requireSelfOrAdmin(authentication, userId);
+        Coupon coupon = couponMapper.selectById(couponId);
+        if (coupon == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "优惠券不存在");
+        if (coupon.getEndTime() == null || java.time.LocalDateTime.now().isAfter(coupon.getEndTime())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "优惠券已过期");
+        }
         // ✨ 核心升级：只检查用户包里是否还有【未使用】的这张券
         UserCoupon existUnused = userCouponMapper.selectOne(
                 new QueryWrapper<UserCoupon>()
@@ -73,7 +80,8 @@ public class CouponController {
         // 拼接优惠券的具体金额和门槛信息返回给前端
         for (UserCoupon uc : myCoupons) {
             Coupon couponInfo = couponMapper.selectById(uc.getCouponId());
-            if (couponInfo != null) {
+            if (couponInfo != null && couponInfo.getEndTime() != null
+                    && !java.time.LocalDateTime.now().isAfter(couponInfo.getEndTime())) {
                 Map<String, Object> map = new HashMap<>();
                 map.put("userCouponId", uc.getId());
                 map.put("couponId", couponInfo.getId());

@@ -132,6 +132,8 @@ const totalPrice = computed(() => {
 const isSubmitting = ref(false)
 const showPayDialog = ref(false)
 const currentOrderId = ref<number | null>(null)
+const serverTotalAmount = ref<number | null>(null)
+const idempotencyKey = ref(crypto.randomUUID())
 const payMethod = ref('alipay')
 
 const handlePlaceOrder = async () => {
@@ -142,22 +144,19 @@ const handlePlaceOrder = async () => {
   isSubmitting.value = true
   try {
     const orderData = {
-      userId: userStore.userInfo.id,
-      totalAmount: totalPrice.value,
       userCouponId: selectedUserCouponId.value, 
-      status: 0, 
-      productId: checkedItems.value[0].id,
       items: checkedItems.value.map(item => ({
-        productId: item.id,
         skuId: item.skuId, // ✨ 核心修复：必须把具体规格 ID 传给后端精准扣库存！
-        productName: item.spec ? `${item.name} (${item.spec})` : item.name, 
-        productPrice: item.price,
         productCount: item.count
       }))
     }
 
-    const resId = await request.post('/order/create', orderData)
-    currentOrderId.value = resId as unknown as number
+    const result: any = await request.post('/order/create', orderData, {
+      headers: { 'Idempotency-Key': idempotencyKey.value }
+    })
+    currentOrderId.value = Number(result.orderId)
+    serverTotalAmount.value = Number(result.totalAmount)
+    idempotencyKey.value = crypto.randomUUID()
     
     if (!isBuyNow.value) {
       cartStore.items = cartStore.items.filter(item => !item.checked)
@@ -295,7 +294,7 @@ onMounted(async () => {
 
     <el-dialog v-model="showPayDialog" title="E-MALL 专属收银台" width="400px" center :close-on-click-modal="false" :show-close="false" class="cute-pay-dialog">
       <div class="pay-container">
-        <div class="pay-amount">需支付：<span class="num">¥ {{ totalPrice.toFixed(2) }}</span></div>
+        <div class="pay-amount">需支付：<span class="num">¥ {{ (serverTotalAmount ?? totalPrice).toFixed(2) }}</span></div>
         <el-radio-group v-model="payMethod" class="pay-method-group">
           <el-radio label="alipay" size="large" border><span style="color:#0284c7; font-weight:bold;">支付宝支付</span></el-radio>
           <el-radio label="wechat" size="large" border><span style="color:#10b981; font-weight:bold;">微信支付</span></el-radio>

@@ -22,8 +22,7 @@ public class Order {
     @TableField(exist = false)
     private List<OrderItem> items;
 
-    // ✨ 核心补漏：接收前端传来的优惠券ID，但不存入订单主表
-    @TableField(exist = false)
+    // 保存领券记录，便于取消或退款后安全退回优惠券。
     private Long userCouponId;
 
     @ExcelProperty("订单ID")
