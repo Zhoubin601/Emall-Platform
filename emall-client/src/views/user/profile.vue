@@ -215,9 +215,9 @@ onMounted(() => {
           
           <div class="fb-submit-box">
             <el-radio-group v-model="fbForm.type" size="small" class="fb-radio">
-              <el-radio-button label="功能建议" />
-              <el-radio-button label="购物体验" />
-              <el-radio-button label="报错反馈" />
+              <el-radio-button value="功能建议">功能建议</el-radio-button>
+              <el-radio-button value="购物体验">购物体验</el-radio-button>
+              <el-radio-button value="报错反馈">报错反馈</el-radio-button>
             </el-radio-group>
             <el-input 
               v-model="fbForm.content" 

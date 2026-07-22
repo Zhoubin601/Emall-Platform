@@ -296,8 +296,8 @@ onMounted(async () => {
       <div class="pay-container">
         <div class="pay-amount">需支付：<span class="num">¥ {{ (serverTotalAmount ?? totalPrice).toFixed(2) }}</span></div>
         <el-radio-group v-model="payMethod" class="pay-method-group">
-          <el-radio label="alipay" size="large" border><span style="color:#0284c7; font-weight:bold;">支付宝支付</span></el-radio>
-          <el-radio label="wechat" size="large" border><span style="color:#10b981; font-weight:bold;">微信支付</span></el-radio>
+          <el-radio value="alipay" size="large" border><span style="color:#0284c7; font-weight:bold;">支付宝支付</span></el-radio>
+          <el-radio value="wechat" size="large" border><span style="color:#10b981; font-weight:bold;">微信支付</span></el-radio>
         </el-radio-group>
         <div class="qr-box">
           <img v-if="payMethod === 'alipay'" :src="alipayQr" class="qr-code" alt="支付宝二维码" />

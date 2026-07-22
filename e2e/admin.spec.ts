@@ -68,3 +68,28 @@ test('管理员可以登录并看到看板数据', async ({ page }) => {
   await expect.poll(() => page.evaluate(() => localStorage.getItem('admin-token')))
     .toBe('admin-test-token')
 })
+
+test('用户和分类表单不使用已弃用的单选框 API', async ({ page }) => {
+  const radioWarnings: string[] = []
+  page.on('console', message => {
+    if (message.type() === 'warning' && message.text().includes('[el-radio]')) {
+      radioWarnings.push(message.text())
+    }
+  })
+
+  await page.addInitScript(() => {
+    localStorage.setItem('admin-token', 'admin-test-token')
+    localStorage.setItem('admin-info', JSON.stringify({ id: 1, username: 'admin', role: 2 }))
+  })
+  await page.route('**/api/**', route => route.fulfill({ json: [] }))
+
+  await page.goto('/users')
+  await page.getByRole('button', { name: '新增用户 / 管理员' }).click()
+  await expect(page.getByRole('radio', { name: '普通买家' })).toBeVisible()
+
+  await page.goto('/categories')
+  await page.getByRole('button', { name: '新增分类' }).click()
+  await expect(page.getByRole('radio', { name: '一级大类' })).toBeVisible()
+
+  expect(radioWarnings).toEqual([])
+})

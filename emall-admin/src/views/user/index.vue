@@ -254,8 +254,8 @@ onMounted(() => fetchUsers())
         <el-form-item label="电子邮箱" prop="email"><el-input v-model="userForm.email" placeholder="选填" /></el-form-item>
         <el-form-item label="角色分配" prop="role">
           <el-radio-group v-model="userForm.role">
-            <el-radio :label="0" border>🛍️ 普通买家</el-radio>
-            <el-radio :label="1" border>🛡️ 普通管理员</el-radio>
+            <el-radio :value="0" border>🛍️ 普通买家</el-radio>
+            <el-radio :value="1" border>🛡️ 普通管理员</el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>

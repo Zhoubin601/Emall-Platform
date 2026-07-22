@@ -126,8 +126,8 @@ onMounted(() => fetchCategories())
         
         <el-form-item label="分类级别">
           <el-radio-group v-model="catForm.level" @change="handleLevelChange">
-            <el-radio :label="1" border>一级大类</el-radio>
-            <el-radio :label="2" border>二级子类</el-radio>
+            <el-radio :value="1" border>一级大类</el-radio>
+            <el-radio :value="2" border>二级子类</el-radio>
           </el-radio-group>
         </el-form-item>
 
