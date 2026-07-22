@@ -61,7 +61,8 @@ public class UserController {
      * 1. 管理端专用：获取所有用户列表
      */
     @GetMapping("/list")
-    public List<User> getUserList() {
+    public List<User> getUserList(Authentication authentication) {
+        requireSuperAdmin(authentication);
         return userMapper.selectList(new QueryWrapper<User>().orderByDesc("id"));
     }
 
@@ -69,7 +70,10 @@ public class UserController {
      * ✨ 核心修复 2：管理端专用：新增用户/管理员 (解决 404 Bug)
      */
     @PostMapping("/add")
-    public String addUser(@RequestBody User user) {
+    public String addUser(@RequestBody User user, Authentication authentication) {
+        requireSuperAdmin(authentication);
+        validateManageableRole(user.getRole());
+
         // 校验账号是否重复
         Long count = userMapper.selectCount(new QueryWrapper<User>().eq("username", user.getUsername()));
         if (count > 0) {
@@ -93,7 +97,15 @@ public class UserController {
      * 3. 管理端专用：删除用户
      */
     @DeleteMapping("/{id}")
-    public String deleteUser(@PathVariable Long id) {
+    public String deleteUser(@PathVariable Long id, Authentication authentication) {
+        requireSuperAdmin(authentication);
+        User existing = userMapper.selectById(id);
+        if (existing == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "用户不存在");
+        }
+        if (isSuperAdmin(existing)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "不能删除超级管理员");
+        }
         userMapper.deleteById(id);
         return "用户删除成功";
     }
@@ -184,16 +196,31 @@ public class UserController {
     @PutMapping("/update")
     public User updateInfo(@RequestBody User user, Authentication authentication) {
         AuthenticatedUser currentUser = (AuthenticatedUser) authentication.getPrincipal();
-        if (!currentUser.isAdmin() && !Objects.equals(currentUser.id(), user.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "不能修改其他用户的资料");
+        if (user.getId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "用户 ID 不能为空");
         }
 
-        // 普通用户不能修改自己的账号、角色或封禁状态。
-        if (!currentUser.isAdmin()) {
+        User existing = userMapper.selectById(user.getId());
+        if (existing == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "用户不存在");
+        }
+
+        boolean updatingSelf = Objects.equals(currentUser.id(), user.getId());
+        if (!currentUser.isSuperAdmin() && !updatingSelf) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "不能修改其他用户的资料");
+        }
+        if (currentUser.isSuperAdmin() && isSuperAdmin(existing) && !updatingSelf) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "不能修改其他超级管理员");
+        }
+
+        // 买家、普通管理员和超级管理员本人都不能修改自己的权限字段。
+        if (!currentUser.isSuperAdmin() || isSuperAdmin(existing)) {
             user.setUsername(null);
             user.setRole(null);
             user.setStatus(null);
             user.setCreateTime(null);
+        } else {
+            validateManageableRole(user.getRole());
         }
 
         if (user.getPassword() != null && user.getPassword().trim().isEmpty()) {
@@ -205,6 +232,25 @@ public class UserController {
 
         userMapper.updateById(user);
         return userMapper.selectById(user.getId());
+    }
+
+    private void validateManageableRole(Integer role) {
+        if (role == null) return;
+        if (role < 0 || role > 1) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "只能分配买家或普通管理员角色");
+        }
+    }
+
+    private boolean isSuperAdmin(User user) {
+        return user.getRole() != null && user.getRole() >= 2;
+    }
+
+    private void requireSuperAdmin(Authentication authentication) {
+        if (authentication == null
+                || !(authentication.getPrincipal() instanceof AuthenticatedUser currentUser)
+                || !currentUser.isSuperAdmin()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "只有超级管理员可以管理用户权限");
+        }
     }
 
     /**

@@ -58,6 +58,10 @@ public class SecurityConfig {
                                 "/api/interaction/notice/active").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/product/searchRecord").permitAll()
                         .requestMatchers(
+                                "/api/user/list",
+                                "/api/user/add").hasRole("SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/user/**").hasRole("SUPER_ADMIN")
+                        .requestMatchers(
                                 "/api/dashboard/**",
                                 "/api/product/add",
                                 "/api/product/update",
@@ -73,8 +77,6 @@ public class SecurityConfig {
                                 "/api/ad/add",
                                 "/api/ad/update",
                                 "/api/ad/delete/**",
-                                "/api/user/list",
-                                "/api/user/add",
                                 "/api/order/list",
                                 "/api/order/export",
                                 "/api/comment/list",
@@ -86,7 +88,6 @@ public class SecurityConfig {
                                 "/api/interaction/notice/update",
                                 "/api/interaction/notice/delete/**",
                                 "/api/file/uploadCommon").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/user/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint((request, response, exception) ->

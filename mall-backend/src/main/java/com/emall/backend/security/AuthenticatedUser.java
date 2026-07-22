@@ -4,4 +4,8 @@ public record AuthenticatedUser(Long id, String username, Integer role) {
     public boolean isAdmin() {
         return role != null && role >= 1;
     }
+
+    public boolean isSuperAdmin() {
+        return role != null && role >= 2;
+    }
 }
