@@ -106,8 +106,6 @@ const submitComment = async () => {
     pics: finalPics.length > 0 ? finalPics.join(',') : null
   }
   
-  console.log("【终极探针】即将提交入库的评价数据：", submitData)
-
   try {
     const apiUrl = isEdit.value ? '/comment/update' : '/comment/add'
     await request.post(apiUrl, submitData)

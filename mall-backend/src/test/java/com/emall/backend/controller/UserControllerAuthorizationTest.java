@@ -19,6 +19,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
 
 class UserControllerAuthorizationTest {
 
@@ -107,6 +108,36 @@ class UserControllerAuthorizationTest {
         when(userMapper.selectList(org.mockito.ArgumentMatchers.any())).thenReturn(List.of());
 
         assertThat(controller.getUserList(authentication(1L, 2))).isEmpty();
+    }
+
+    @Test
+    void superAdministratorCannotCreateAnAccountWithAnExistingEmail() {
+        User requested = user(null, 0);
+        requested.setUsername("new-user");
+        requested.setPassword("password123");
+        requested.setEmail(" Existing@Example.com ");
+        when(userMapper.selectCount(any())).thenReturn(0L, 1L);
+
+        assertThatThrownBy(() -> controller.addUser(requested, authentication(1L, 2)))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("409 CONFLICT");
+        assertThat(requested.getEmail()).isEqualTo("existing@example.com");
+        verify(userMapper, never()).insert(any());
+    }
+
+    @Test
+    void userCannotChangeProfileToAnotherAccountsEmail() {
+        User existing = user(7L, 0);
+        existing.setEmail("old@example.com");
+        User update = user(7L, 0);
+        update.setEmail("TAKEN@example.com");
+        when(userMapper.selectById(7L)).thenReturn(existing);
+        when(userMapper.selectCount(any())).thenReturn(1L);
+
+        assertThatThrownBy(() -> controller.updateInfo(update, authentication(7L, 0)))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("409 CONFLICT");
+        verify(userMapper, never()).updateById(any());
     }
 
     private User user(Long id, int role) {

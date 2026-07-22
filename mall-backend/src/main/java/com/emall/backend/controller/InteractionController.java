@@ -6,8 +6,10 @@ import com.emall.backend.entity.Notice;
 import com.emall.backend.mapper.FeedbackMapper;
 import com.emall.backend.mapper.NoticeMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import com.emall.backend.security.AuthenticatedUser;
 import com.emall.backend.security.AuthorizationService;
 
@@ -30,9 +32,16 @@ public class InteractionController {
     // === 🔽 以下为旧版兼容接口 (绝对保留，不破坏原有逻辑) 🔽 ===
     @PostMapping("/feedback/submit")
     public String submitFeedback(@RequestBody Feedback feedback, Authentication authentication) {
+        validateMessageContent(feedback);
+        if (feedback.getType() == null || feedback.getType().isBlank()
+                || "在线沟通".equals(feedback.getType())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "请选择有效的反馈类型");
+        }
         feedback.setUserId(authorizationService.currentUser(authentication).id());
         feedback.setSenderRole(0);
         feedback.setStatus(0);
+        feedback.setReply(null);
+        feedback.setCreateTime(java.time.LocalDateTime.now().withNano(0));
         feedbackMapper.insert(feedback);
         return "提交成功，客服将尽快为您解答！";
     }
@@ -40,7 +49,10 @@ public class InteractionController {
     @GetMapping("/feedback/my")
     public List<Feedback> getMyFeedbacks(@RequestParam Long userId, Authentication authentication) {
         userId = authorizationService.requireSelfOrAdmin(authentication, userId);
-        return feedbackMapper.selectList(new QueryWrapper<Feedback>().eq("user_id", userId).orderByDesc("create_time"));
+        return feedbackMapper.selectList(new QueryWrapper<Feedback>()
+                .eq("user_id", userId)
+                .ne("type", "在线沟通")
+                .orderByDesc("create_time"));
     }
 
     @GetMapping("/notice/active")
@@ -57,8 +69,18 @@ public class InteractionController {
 
     @PutMapping("/feedback/reply")
     public String replyFeedback(@RequestBody Feedback feedback) {
-        feedback.setStatus(1);
-        feedbackMapper.updateById(feedback);
+        if (feedback.getId() == null || feedback.getReply() == null || feedback.getReply().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "回复内容不能为空");
+        }
+        Feedback existing = feedbackMapper.selectById(feedback.getId());
+        if (existing == null || "在线沟通".equals(existing.getType())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "反馈不存在");
+        }
+        Feedback update = new Feedback();
+        update.setId(existing.getId());
+        update.setReply(feedback.getReply().trim());
+        update.setStatus(1);
+        feedbackMapper.updateById(update);
         return "回复成功！";
     }
 
@@ -68,11 +90,13 @@ public class InteractionController {
         userId = authorizationService.requireSelfOrAdmin(authentication, userId);
         return feedbackMapper.selectList(new QueryWrapper<Feedback>()
                 .eq("user_id", userId)
+                .eq("type", "在线沟通")
                 .orderByAsc("create_time"));
     }
 
     @PostMapping("/chat/send")
     public String sendChat(@RequestBody Feedback chat, Authentication authentication) {
+        validateMessageContent(chat);
         AuthenticatedUser currentUser = authorizationService.currentUser(authentication);
         if (currentUser.isAdmin()) {
             if (chat.getUserId() == null) {
@@ -85,9 +109,9 @@ public class InteractionController {
             chat.setSenderRole(0);
         }
         chat.setStatus(1);
-        if (chat.getType() == null) {
-            chat.setType("在线沟通");
-        }
+        chat.setType("在线沟通");
+        chat.setContent(chat.getContent().trim());
+        chat.setReply(null);
 
         // ✨ 核心修复：强行注入精准的当前时间！没有它，消息就会迷失在时间长河里
         chat.setCreateTime(java.time.LocalDateTime.now().withNano(0));
@@ -97,7 +121,9 @@ public class InteractionController {
     }
     @GetMapping("/chat/user-list")
     public List<Feedback> getChatUserList() {
-        List<Feedback> allChats = feedbackMapper.selectList(new QueryWrapper<Feedback>().orderByDesc("create_time"));
+        List<Feedback> allChats = feedbackMapper.selectList(new QueryWrapper<Feedback>()
+                .eq("type", "在线沟通")
+                .orderByDesc("create_time"));
         Map<Long, Feedback> latestChatMap = new LinkedHashMap<>();
         for (Feedback chat : allChats) {
             if (!latestChatMap.containsKey(chat.getUserId())) {
@@ -137,5 +163,15 @@ public class InteractionController {
     public String deleteNotice(@PathVariable Long id) {
         noticeMapper.deleteById(id);
         return "公告删除成功";
+    }
+
+    private void validateMessageContent(Feedback feedback) {
+        if (feedback == null || feedback.getContent() == null || feedback.getContent().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "消息内容不能为空");
+        }
+        if (feedback.getContent().length() > 5000) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "消息内容不能超过 5000 个字符");
+        }
+        feedback.setContent(feedback.getContent().trim());
     }
 }

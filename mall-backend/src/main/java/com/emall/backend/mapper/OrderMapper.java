@@ -26,4 +26,11 @@ public interface OrderMapper extends BaseMapper<Order> {
             @Param("id") Long id,
             @Param("currentStatus") Integer currentStatus,
             @Param("targetStatus") Integer targetStatus);
+
+    @Update("UPDATE oms_order SET comment_status = 1 " +
+            "WHERE id = #{id} AND status = 3 AND comment_status = 0")
+    int markCommentedIfEligible(@Param("id") Long id);
+
+    @Update("UPDATE oms_order SET comment_status = 0 WHERE id = #{id}")
+    int resetCommentStatus(@Param("id") Long id);
 }

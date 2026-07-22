@@ -93,3 +93,15 @@ test('用户和分类表单不使用已弃用的单选框 API', async ({ page })
 
   expect(radioWarnings).toEqual([])
 })
+
+test('普通管理员不能直接打开用户管理页', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('admin-token', 'regular-admin-token')
+    localStorage.setItem('admin-info', JSON.stringify({ id: 2, username: 'operator', role: 1 }))
+  })
+  await page.route('**/api/**', route => route.fulfill({ json: [] }))
+
+  await page.goto('/users')
+
+  await expect(page).toHaveURL(/\/dashboard$/)
+})

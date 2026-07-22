@@ -43,6 +43,8 @@ test('买家可以通过登录页进入商城', async ({ page }) => {
 
 test('反馈和支付表单不使用已弃用的单选框 API', async ({ page }) => {
   const radioWarnings: string[] = []
+  const runtimeErrors: string[] = []
+  page.on('pageerror', error => runtimeErrors.push(error.message))
   page.on('console', message => {
     if (message.type() === 'warning' && message.text().includes('[el-radio]')) {
       radioWarnings.push(message.text())
@@ -74,6 +76,8 @@ test('反馈和支付表单不使用已弃用的单选框 API', async ({ page })
   })
 
   await page.goto('/profile')
+  await page.waitForLoadState('networkidle')
+  expect(runtimeErrors).toEqual([])
   await expect(page.getByRole('radio', { name: '功能建议' })).toBeVisible()
 
   await page.goto('/checkout')

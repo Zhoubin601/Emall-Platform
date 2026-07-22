@@ -12,6 +12,7 @@ import { CanvasRenderer } from 'echarts/renderers'
 import type { EChartsType } from 'echarts/core'
 import { User, ShoppingCart, Money, TrendCharts } from '@element-plus/icons-vue'
 import request from '../../utils/request' // ✨ 新增引入 request
+import { normalizeDashboardData, type DashboardData } from './dashboardData'
 
 echarts.use([
   BarChart,
@@ -41,7 +42,7 @@ const charts: EChartsType[] = []
 // ✨ 新增：拉取后端真实看板数据
 const fetchDashboardData = async () => {
   try {
-    const res: any = await request.get('/dashboard/data')
+    const res = normalizeDashboardData(await request.get('/dashboard/data'))
     
     // 1. 渲染四大核心指标
     coreMetrics.value = {
@@ -59,7 +60,7 @@ const fetchDashboardData = async () => {
 }
 
 // ✨ 修改：接收后端数据并绘制 ECharts
-const initCharts = (data: any) => {
+const initCharts = (data: DashboardData) => {
   // 1. 销量趋势折线图 (近7天)
   if (trendChartRef.value) {
     const trendChart = markRaw(echarts.init(trendChartRef.value))

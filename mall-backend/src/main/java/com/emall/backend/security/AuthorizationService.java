@@ -31,4 +31,11 @@ public class AuthorizationService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "没有权限操作该资源");
         }
     }
+
+    public void requireOwner(Authentication authentication, Long ownerId) {
+        AuthenticatedUser current = currentUser(authentication);
+        if (!Objects.equals(current.id(), ownerId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the resource owner can perform this action");
+        }
+    }
 }

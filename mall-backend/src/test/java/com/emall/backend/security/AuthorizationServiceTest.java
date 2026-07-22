@@ -29,4 +29,13 @@ class AuthorizationServiceTest {
 
         assertThat(authorizationService.requireSelfOrAdmin(authentication, 8L)).isEqualTo(8L);
     }
+
+    @Test
+    void administratorIsNotTreatedAsTheOwnerOfAUsersReview() {
+        var authentication = new UsernamePasswordAuthenticationToken(
+                new AuthenticatedUser(1L, "admin", 2), null, List.of());
+
+        assertThatThrownBy(() -> authorizationService.requireOwner(authentication, 7L))
+                .isInstanceOf(ResponseStatusException.class);
+    }
 }

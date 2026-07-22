@@ -14,7 +14,7 @@ const routes = [
     redirect: '/dashboard',
     children: [
       { path: 'dashboard', name: 'Dashboard', component: () => import('../views/dashboard/index.vue'), meta: { title: '数据看板' } },
-      { path: 'users', name: 'Users', component: () => import('../views/user/index.vue'), meta: { title: '用户管理' } },
+      { path: 'users', name: 'Users', component: () => import('../views/user/index.vue'), meta: { title: '用户管理', requiresSuperAdmin: true } },
       { path: 'products', name: 'Products', component: () => import('../views/product/index.vue'), meta: { title: '商品列表' } },
       { path: 'categories', component: () => import('../views/product/category.vue'), meta: { title: '分类管理' } },
       { path: 'orders', name: 'Orders', component: () => import('../views/order/index.vue'), meta: { title: '订单管理' } },
@@ -31,14 +31,15 @@ const routes = [
 
 const router = createRouter({ history: createWebHistory(), routes })
 
-export function resolveAdminRedirect(path: string, token: string): string | undefined {
+export function resolveAdminRedirect(path: string, token: string, role?: number): string | undefined {
   if (path !== '/login' && !token) return '/login'
   if (path === '/login' && token) return '/'
+  if (path === '/users' && role !== 2) return '/dashboard'
 }
 
 router.beforeEach((to) => {
   const adminStore = useAdminStore()
-  return resolveAdminRedirect(to.path, adminStore.token)
+  return resolveAdminRedirect(to.path, adminStore.token, adminStore.adminInfo?.role)
 })
 
 export default router

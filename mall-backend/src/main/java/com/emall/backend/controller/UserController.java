@@ -74,11 +74,19 @@ public class UserController {
         requireSuperAdmin(authentication);
         validateManageableRole(user.getRole());
 
+        if (user.getUsername() == null || user.getUsername().trim().length() < 3
+                || user.getUsername().trim().length() > 50) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "账号长度必须为 3 到 50 个字符");
+        }
+        user.setUsername(user.getUsername().trim());
+        user.setEmail(normalizeOptionalEmail(user.getEmail()));
+
         // 校验账号是否重复
         Long count = userMapper.selectCount(new QueryWrapper<User>().eq("username", user.getUsername()));
         if (count > 0) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "该登录账号已存在，请换一个");
         }
+        ensureEmailAvailable(user.getEmail(), null);
 
         validatePassword(user.getPassword());
         user.setPassword(passwordEncoder.encode(user.getPassword()));
@@ -150,6 +158,8 @@ public class UserController {
     @PostMapping("/register")
     public String register(@Valid @RequestBody RegisterRequest request) {
         String normalizedEmail = verifyCode(request.email(), request.code());
+
+        ensureEmailAvailable(normalizedEmail, null);
 
         Long count = userMapper.selectCount(new QueryWrapper<User>().eq("username", request.username()));
         if (count > 0) {
@@ -228,6 +238,11 @@ public class UserController {
         } else if (user.getPassword() != null) {
             validatePassword(user.getPassword());
             user.setPassword(passwordEncoder.encode(user.getPassword()));
+        }
+
+        if (user.getEmail() != null) {
+            user.setEmail(normalizeOptionalEmail(user.getEmail()));
+            ensureEmailAvailable(user.getEmail(), user.getId());
         }
 
         userMapper.updateById(user);
@@ -325,10 +340,25 @@ public class UserController {
     }
 
     private String normalizeEmail(String email) {
-        if (email == null || !email.trim().matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) {
+        if (email == null || email.trim().length() > 254
+                || !email.trim().matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "邮箱格式不正确");
         }
         return email.trim().toLowerCase(java.util.Locale.ROOT);
+    }
+
+    private String normalizeOptionalEmail(String email) {
+        if (email == null || email.isBlank()) return null;
+        return normalizeEmail(email);
+    }
+
+    private void ensureEmailAvailable(String email, Long excludedUserId) {
+        if (email == null) return;
+        QueryWrapper<User> query = new QueryWrapper<User>().eq("email", email);
+        if (excludedUserId != null) query.ne("id", excludedUserId);
+        if (userMapper.selectCount(query) > 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "该邮箱已绑定其他账号");
+        }
     }
 
     public record AuthResponse(String token, User user) {}
