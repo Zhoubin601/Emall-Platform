@@ -1,33 +1,58 @@
-# IDEs
-.idea/
-.vscode/
-*.iml
-*.ipr
-*.iws
+# Local environment and secrets
+**/.env
+**/.env.*
+!**/.env.example
+*.local
 
-# Node
-node_modules/
-dist/
+# Dependencies and package-manager caches
+**/node_modules/
+.npm/
+.pnpm-store/
+.yarn/
+
+# Build outputs and compiled files
+**/dist/
+**/dist-ssr/
+**/target/
+**/build/
+*.class
+
+# Tests, coverage, and browser artifacts
+**/coverage/
 playwright-report/
 test-results/
 blob-report/
 .playwright-browsers/
 
-# Java / Maven
-target/
-*.jar
-*.war
-*.ear
+# Runtime data and logs
+**/mysql-data/
+**/uploads/
+**/logs/
+*.log
+*.pid
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-# MySQL data
-mysql-data/
+# IDE and editor settings
+**/.idea/
+**/.vscode/
+*.iml
+*.ipr
+*.iws
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
-# Local secrets and uploaded files
-.env
-.env.*
-!.env.example
-uploads/
-
-# OS files
+# OS and temporary files
 .DS_Store
 Thumbs.db
+Desktop.ini
+*.bat
+*.tmp
+*.temp
+*.bak
+*~
