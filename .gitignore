@@ -11,6 +11,7 @@ dist/
 playwright-report/
 test-results/
 blob-report/
+.playwright-browsers/
 
 # Java / Maven
 target/
