@@ -49,6 +49,14 @@ const getStatusTagType = (status: number) => {
   return map[status] || 'info'
 }
 
+const getStepActive = (status: number) => {
+  if (status === 0) return 1
+  if (status === 1) return 2
+  if (status === 2) return 3
+  if (status === 3) return 4
+  return 0
+}
+
 // === 订单操作逻辑 ===
 
 const handleCancel = (order: any) => {
@@ -170,6 +178,15 @@ onMounted(() => fetchMyOrders())
             <el-tag :type="getStatusTagType(order.status)" round effect="light">
               {{ getStatusText(order.status) }}
             </el-tag>
+          </div>
+          
+          <div class="order-step-bar" v-if="order.status <= 3">
+            <el-steps :active="getStepActive(order.status)" finish-status="success" align-center size="small">
+              <el-step title="提交订单" />
+              <el-step title="付款成功" />
+              <el-step title="商品出库" />
+              <el-step title="确认收货" />
+            </el-steps>
           </div>
           
           <div class="order-body">
@@ -308,4 +325,11 @@ onMounted(() => fetchMyOrders())
 .timeline-content { font-size: 14px; line-height: 1.5; margin-top: 5px; }
 .close-btn { width: 100%; font-weight: bold; background: #f1f5f9; color: #475569; border: none; }
 .close-btn:hover { background: #e2e8f0; }
+
+.order-step-bar { margin: 15px 0 20px; padding: 12px 10px; background: #f8fafc; border-radius: 12px; }
+
+@media (max-width: 768px) {
+  .order-body { flex-direction: column; align-items: flex-start; gap: 15px; }
+  .order-actions { width: 100%; justify-content: flex-end; flex-wrap: wrap; }
+}
 </style>

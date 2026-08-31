@@ -30,37 +30,57 @@ const initItems = () => {
 }
 
 const syncLatestPrices = async () => {
+  if (checkedItems.value.length === 0) {
+    priceLoading.value = false
+    return
+  }
   priceLoading.value = true
   try {
-    for (let item of checkedItems.value) {
-      const detail: any = await request.get(`/product/detail/${item.id}`)
-      let realPrice = detail.price
-      let originalBasePrice = detail.price 
-      let isFlashActive = false
-      
-      if (detail.promoStartTime && detail.promoEndTime && detail.promoPrice) {
-        const now = new Date().getTime()
-        const start = new Date(detail.promoStartTime.replace(/-/g, '/')).getTime()
-        const end = new Date(detail.promoEndTime.replace(/-/g, '/')).getTime()
-        if (now >= start && now <= end) {
-          realPrice = detail.promoPrice
-          isFlashActive = true
-        }
-      }
-      
-      if (!isFlashActive && item.skuId) {
-        const skus: any[] = await request.get(`/product/skus/${item.id}`)
-        const targetSku = skus.find(s => s.id === item.skuId)
-        if (targetSku) {
-          realPrice = targetSku.price
-          originalBasePrice = targetSku.price
-        }
-      }
+    const syncTasks = checkedItems.value.map(async (item) => {
+      try {
+        const detailPromise = request.get(`/product/detail/${item.id}`)
+        const skuPromise = item.skuId ? request.get(`/product/skus/${item.id}`) : Promise.resolve([])
+        const [detail, skus]: [any, any] = await Promise.all([detailPromise, skuPromise])
 
-      item.price = realPrice
-      item.isFlash = isFlashActive
-      item.originalPrice = originalBasePrice
-    }
+        if (!detail || detail.price === undefined || detail.price === null) return
+        let realPrice = Number(detail.price)
+        if (isNaN(realPrice)) return
+
+        let originalBasePrice = realPrice
+        let isFlashActive = false
+
+        if (detail.promoStartTime && detail.promoEndTime && detail.promoPrice !== undefined && detail.promoPrice !== null) {
+          const now = Date.now()
+          const start = new Date(detail.promoStartTime.replace(/-/g, '/')).getTime()
+          const end = new Date(detail.promoEndTime.replace(/-/g, '/')).getTime()
+          if (now >= start && now <= end) {
+            const promo = Number(detail.promoPrice)
+            if (!isNaN(promo)) {
+              realPrice = promo
+              isFlashActive = true
+            }
+          }
+        }
+
+        if (!isFlashActive && item.skuId && Array.isArray(skus)) {
+          const targetSku = skus.find((s: any) => s.id === item.skuId)
+          if (targetSku && targetSku.price !== undefined && targetSku.price !== null) {
+            const skuPrice = Number(targetSku.price)
+            if (!isNaN(skuPrice)) {
+              realPrice = skuPrice
+              originalBasePrice = skuPrice
+            }
+          }
+        }
+
+        item.price = realPrice
+        item.isFlash = isFlashActive
+        item.originalPrice = originalBasePrice
+      } catch (err) {
+        console.warn(`同步商品 ID ${item.id} 价格失败`, err)
+      }
+    })
+    await Promise.all(syncTasks)
   } catch (e) {
     console.error('同步最新价格失败', e)
   } finally {
@@ -391,4 +411,14 @@ onMounted(async () => {
 .dialog-footer { display: flex; justify-content: center; gap: 20px; width: 100%; }
 .cancel-pay-btn { background: #f1f5f9; color: #64748b; border: none; }
 .confirm-pay-btn { background: #0ea5e9; border: none; padding: 0 30px; font-weight: bold; }
+
+@media (max-width: 768px) {
+  .checkout-layout { padding-top: 80px; }
+  .coupon-box { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .coupon-selector { width: 100%; }
+  .action-bar { flex-direction: column; gap: 15px; align-items: stretch; }
+  .selected-addr-desc { max-width: 100%; }
+  .submit-btn { width: 100%; }
+  .address-grid { grid-template-columns: 1fr; }
+}
 </style>

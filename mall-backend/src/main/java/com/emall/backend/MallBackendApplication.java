@@ -4,11 +4,13 @@ import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 // ✨ 这一行非常重要！它告诉 Spring 去哪里找你的 Mapper 接口
 @MapperScan("com.emall.backend.mapper")
 @EnableCaching
+@EnableScheduling
 public class MallBackendApplication {
 
     public static void main(String[] args) {

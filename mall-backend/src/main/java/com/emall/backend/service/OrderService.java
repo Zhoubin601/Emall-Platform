@@ -8,6 +8,7 @@ import com.emall.backend.mapper.*;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -162,6 +163,23 @@ public class OrderService {
         }
         itemMapper.delete(new QueryWrapper<OrderItem>().eq("order_id", order.getId()));
         orderMapper.deleteById(order.getId());
+    }
+
+    @Scheduled(fixedRate = 60000)
+    public void cancelExpiredOrders() {
+        LocalDateTime threshold = LocalDateTime.now().minusMinutes(30);
+        List<Order> expiredOrders = orderMapper.selectList(
+                new QueryWrapper<Order>()
+                        .eq("status", OrderStatusPolicy.PENDING_PAYMENT)
+                        .le("create_time", threshold)
+        );
+        for (Order order : expiredOrders) {
+            try {
+                changeStatus(order, OrderStatusPolicy.CANCELLED, true);
+            } catch (Exception ignored) {
+                // Ignore if concurrent operation changed order status
+            }
+        }
     }
 
     private BigDecimal validateAndConsumeCoupon(Long userCouponId, Long userId, BigDecimal subtotal, LocalDateTime now) {

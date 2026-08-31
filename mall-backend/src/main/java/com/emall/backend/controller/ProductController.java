@@ -134,6 +134,23 @@ public class ProductController {
         return skuMapper.selectList(new QueryWrapper<Sku>().eq("product_id", productId));
     }
 
+    @GetMapping("/batch")
+    public List<Product> getProductsByIds(@RequestParam List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+        return productMapper.selectBatchIds(ids);
+    }
+
+    @GetMapping("/skus/batch")
+    public Map<Long, List<Sku>> getSkusByProductIds(@RequestParam List<Long> productIds) {
+        if (productIds == null || productIds.isEmpty()) {
+            return java.util.Collections.emptyMap();
+        }
+        List<Sku> skus = skuMapper.selectList(new QueryWrapper<Sku>().in("product_id", productIds));
+        return skus.stream().collect(Collectors.groupingBy(Sku::getProductId));
+    }
+
 
     // ================= ✨ 全量平铺级联：导入导出重构模块 =================
 

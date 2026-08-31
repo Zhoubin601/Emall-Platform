@@ -442,4 +442,15 @@ onMounted(async () => {
 .detail-tabs-card { padding: 20px 40px 50px; }
 .rich-content h3 { color: #0f172a; margin-bottom: 15px; border-left: 4px solid #0284c7; padding-left: 10px; }
 .detail-long-img { width: 100%; border-radius: 16px; margin-top: 30px; }
+
+@media (max-width: 768px) {
+  .detail-layout { padding-top: 80px; }
+  .product-content { flex-direction: column; padding: 15px; gap: 20px; }
+  .image-showcase { width: 100%; flex: none; height: 280px; }
+  .title { font-size: 22px; }
+  .price-num { font-size: 32px; }
+  .flash-banner { flex-direction: column; gap: 8px; align-items: flex-start; }
+  .price-box { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .detail-tabs-card { padding: 15px; }
+}
 </style>

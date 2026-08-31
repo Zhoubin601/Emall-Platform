@@ -46,7 +46,7 @@ spring:
             required: true
 
   cache:
-    type: redis
+    type: ${SPRING_CACHE_TYPE:simple}
     cache-names:
       - productList
       - categoryList

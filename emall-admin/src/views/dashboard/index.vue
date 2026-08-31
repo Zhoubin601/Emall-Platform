@@ -152,18 +152,32 @@ const initCharts = (data: DashboardData) => {
   }
 }
 
-// 监听窗口大小改变，实现图表自适应
+// 监听窗口与容器大小改变，实现图表流畅自适应
 const handleResize = () => {
   charts.forEach(chart => chart.resize())
 }
 
+let resizeObserver: ResizeObserver | null = null
+
 onMounted(() => {
-  fetchDashboardData() // ✨ 组件挂载时拉取真实数据
+  fetchDashboardData()
   window.addEventListener('resize', handleResize)
+  if (typeof ResizeObserver !== 'undefined') {
+    resizeObserver = new ResizeObserver(() => {
+      handleResize()
+    })
+    if (trendChartRef.value) resizeObserver.observe(trendChartRef.value)
+    if (statusChartRef.value) resizeObserver.observe(statusChartRef.value)
+    if (rankChartRef.value) resizeObserver.observe(rankChartRef.value)
+  }
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
+  if (resizeObserver) {
+    resizeObserver.disconnect()
+    resizeObserver = null
+  }
   charts.forEach(chart => chart.dispose())
 })
 </script>

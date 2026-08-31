@@ -25,58 +25,70 @@ const totalPrice = computed(() => {
     .reduce((sum, item) => sum + item.price * item.count, 0)
 })
 
-// ✨ 核心重构：购物车每次打开时，强制向后端同步最新的价格、库存和秒杀状态
+// ✨ 核心重构：购物车每次打开时，使用并发请求快速向后端同步最新的价格、库存和秒杀状态
 const syncLatestPricesAndStock = async () => {
   if (cartStore.items.length === 0) return
   priceLoading.value = true
   let hasChanges = false
 
   try {
-    for (let item of cartStore.items) {
-      const detail: any = await request.get(`/product/detail/${item.id}`)
-      let realPrice = detail.price
-      let originalBasePrice = detail.price
-      let realStock = detail.stock
-      let isFlashActive = false
-      
-      // 1. 检查是否正在秒杀活动中
-      if (detail.promoStartTime && detail.promoEndTime && detail.promoPrice) {
-        const now = new Date().getTime()
-        const start = new Date(detail.promoStartTime.replace(/-/g, '/')).getTime()
-        const end = new Date(detail.promoEndTime.replace(/-/g, '/')).getTime()
-        if (now >= start && now <= end) {
-          realPrice = detail.promoPrice
-          isFlashActive = true
-        }
-      }
-      
-      // 2. 如果不在秒杀中，则检查 SKU 最新规格价格
-      if (!isFlashActive && (item as any).skuId) {
-        const skus: any[] = await request.get(`/product/skus/${item.id}`)
-        const targetSku = skus.find(s => s.id === (item as any).skuId)
-        if (targetSku) {
-          realPrice = targetSku.price
-          originalBasePrice = targetSku.price
-          realStock = targetSku.stock
-        }
-      }
+    const updatePromises = cartStore.items.map(async (item) => {
+      try {
+        const detailPromise = request.get(`/product/detail/${item.id}`)
+        const skuPromise = (item as any).skuId ? request.get(`/product/skus/${item.id}`) : Promise.resolve([])
+        const [detail, skus]: [any, any] = await Promise.all([detailPromise, skuPromise])
 
-      // 3. 对比缓存，如果价格、库存、秒杀状态发生变化，自动覆写缓存！
-      if (item.price !== realPrice || item.stock !== realStock || (item as any).isFlash !== isFlashActive) {
-        item.price = realPrice
-        item.stock = realStock
-        ;(item as any).originalPrice = originalBasePrice
-        ;(item as any).isFlash = isFlashActive
-        
-        // 防呆：如果最新库存小于用户加入购物车时的数量，自动把数量降下来
-        if (item.count > realStock) {
-          item.count = realStock > 0 ? realStock : 1
-        }
-        hasChanges = true
-      }
-    }
+        if (!detail || detail.price === undefined || detail.price === null) return
+        let realPrice = Number(detail.price)
+        if (isNaN(realPrice)) return
 
-    // 如果发现数据有变动，立刻保存回 localStorage
+        let originalBasePrice = realPrice
+        let realStock = detail.stock ?? 0
+        let isFlashActive = false
+
+        if (detail.promoStartTime && detail.promoEndTime && detail.promoPrice !== undefined && detail.promoPrice !== null) {
+          const now = Date.now()
+          const start = new Date(detail.promoStartTime.replace(/-/g, '/')).getTime()
+          const end = new Date(detail.promoEndTime.replace(/-/g, '/')).getTime()
+          if (now >= start && now <= end) {
+            const promo = Number(detail.promoPrice)
+            if (!isNaN(promo)) {
+              realPrice = promo
+              isFlashActive = true
+            }
+          }
+        }
+
+        if (!isFlashActive && (item as any).skuId && Array.isArray(skus)) {
+          const targetSku = skus.find((s: any) => s.id === (item as any).skuId)
+          if (targetSku && targetSku.price !== undefined && targetSku.price !== null) {
+            const skuPrice = Number(targetSku.price)
+            if (!isNaN(skuPrice)) {
+              realPrice = skuPrice
+              originalBasePrice = skuPrice
+              realStock = targetSku.stock ?? 0
+            }
+          }
+        }
+
+        if (item.price !== realPrice || item.stock !== realStock || (item as any).isFlash !== isFlashActive) {
+          item.price = realPrice
+          item.stock = realStock
+          ;(item as any).originalPrice = originalBasePrice
+          ;(item as any).isFlash = isFlashActive
+
+          if (item.count > realStock) {
+            item.count = realStock > 0 ? realStock : 1
+          }
+          hasChanges = true
+        }
+      } catch (err) {
+        console.warn(`同步商品 ID ${item.id} 失败`, err)
+      }
+    })
+
+    await Promise.all(updatePromises)
+
     if (hasChanges) {
       cartStore.saveCart()
     }
@@ -268,7 +280,14 @@ onMounted(() => {
 .total-info { display: flex; align-items: center; gap: 30px; color: #475569; }
 .total-price-box { display: flex; align-items: baseline; color: #0f172a; font-weight: bold; }
 .total-currency { color: #f43f5e; font-size: 20px; margin-left: 10px; margin-right: 2px; }
-.total-price { color: #f43f5e; font-size: 32px; }
+.total-price { color: #f43f5e; font-size: 32px; font-weight: 900; }
 .checkout-btn { background: #0284c7; border: none; font-size: 16px; padding: 0 40px; }
 .checkout-btn:hover { background: #0369a1; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(2, 132, 199, 0.3); transition: all 0.3s; }
+
+@media (max-width: 768px) {
+  .cart-layout { padding-top: 80px; }
+  .checkout-bar { flex-direction: column; gap: 15px; align-items: stretch; padding: 15px; }
+  .total-info { justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .checkout-btn { width: 100%; }
+}
 </style>
