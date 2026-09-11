@@ -56,3 +56,6 @@ Desktop.ini
 *.temp
 *.bak
 *~
+dump.rdb
+~$*.docx
+

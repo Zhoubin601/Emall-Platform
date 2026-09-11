@@ -2,6 +2,8 @@ package com.emall.backend.controller;
 
 import com.alibaba.excel.EasyExcel;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.emall.backend.entity.HotSearch;
 import com.emall.backend.entity.Product;
 import com.emall.backend.entity.ProductExcelDTO;
@@ -92,8 +94,35 @@ public class ProductController {
     @PutMapping("/update")
     public String updateProduct(@RequestBody Product product) {
         product.setStock(null); // ✨ 核心防爆逻辑：防止普通编辑覆盖总库存
-        productMapper.updateById(product);
+        
+        UpdateWrapper<Product> wrapper = new UpdateWrapper<>();
+        wrapper.eq("id", product.getId());
+        if (product.getName() != null) wrapper.set("name", product.getName());
+        if (product.getCategoryId() != null) wrapper.set("category_id", product.getCategoryId());
+        if (product.getPrice() != null) wrapper.set("price", product.getPrice());
+        if (product.getDescription() != null) wrapper.set("description", product.getDescription());
+        if (product.getStatus() != null) wrapper.set("status", product.getStatus());
+        if (product.getPicUrl() != null) wrapper.set("pic_url", product.getPicUrl());
+        
+        // 显式更新或清空秒杀特惠字段
+        wrapper.set("promo_price", product.getPromoPrice());
+        wrapper.set("promo_stock", product.getPromoStock());
+        wrapper.set("promo_sku_id", product.getPromoSkuId());
+        wrapper.set("promo_start_time", product.getPromoStartTime());
+        wrapper.set("promo_end_time", product.getPromoEndTime());
+
+        productMapper.update(null, wrapper);
         return "更新成功";
+    }
+
+    @CacheEvict(value = "productList", allEntries = true)
+    @PutMapping("/cancelPromo/{id}")
+    public String cancelPromo(@PathVariable Long id) {
+        UpdateWrapper<Product> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.eq("id", id)
+                .setSql("promo_price = NULL, promo_stock = NULL, promo_sku_id = NULL, promo_start_time = NULL, promo_end_time = NULL");
+        productMapper.update(null, updateWrapper);
+        return "取消秒杀成功";
     }
 
     @DeleteMapping("/delete/{id}")

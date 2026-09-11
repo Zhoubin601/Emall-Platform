@@ -33,10 +33,129 @@ const mockAds = [
   }
 ]
 
+const mockUsers = [
+  {
+    id: 1,
+    username: 'admin',
+    nickname: '超级管理员',
+    phone: '13800000000',
+    email: 'admin@emall.com',
+    avatar: '',
+    role: 2,
+    status: 1,
+    createTime: '2026-08-01 10:00:00'
+  },
+  {
+    id: 2,
+    username: 'operator',
+    nickname: '电商运营主管',
+    phone: '13800000002',
+    email: 'operator@emall.com',
+    avatar: '',
+    role: 1,
+    status: 1,
+    createTime: '2026-08-10 14:30:00'
+  },
+  {
+    id: 3,
+    username: 'service01',
+    nickname: '官方金牌客服小E',
+    phone: '13800000003',
+    email: 'service01@emall.com',
+    avatar: '',
+    role: 1,
+    status: 1,
+    createTime: '2026-08-15 09:00:00'
+  },
+  {
+    id: 6,
+    username: '603',
+    nickname: 'zmjjkk (技术运维)',
+    phone: '13800000603',
+    email: '3283511301@qq.com',
+    avatar: '',
+    role: 1,
+    status: 1,
+    createTime: '2026-05-11 19:58:20'
+  },
+  {
+    id: 7,
+    username: 'buyer',
+    nickname: 'VIP星选体验官',
+    phone: '13800138000',
+    email: 'vip@emall.com',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+    role: 0,
+    status: 1,
+    createTime: '2026-08-20 11:20:00'
+  },
+  {
+    id: 8,
+    username: '605',
+    nickname: 'zbb (品质买家)',
+    phone: '13800000605',
+    email: '3185130953@qq.com',
+    avatar: '',
+    role: 0,
+    status: 1,
+    createTime: '2026-05-13 10:54:37'
+  },
+  {
+    id: 9,
+    username: 'zhangsan',
+    nickname: '张三 (极客发烧友)',
+    phone: '13911112222',
+    email: 'zhangsan@geek.com',
+    avatar: '',
+    role: 0,
+    status: 1,
+    createTime: '2026-08-25 16:40:00'
+  },
+  {
+    id: 10,
+    username: 'risk_user',
+    nickname: '违规风险账号',
+    phone: '13799998888',
+    email: 'baduser@test.com',
+    avatar: '',
+    role: 0,
+    status: 0,
+    createTime: '2026-08-28 18:10:00'
+  }
+]
+
 const mockCoupons = [
   { id: 1, name: '新人专享神券', minAmount: 100, discountAmount: 20, startTime: '2026-01-01', endTime: '2026-12-31' },
   { id: 2, name: '满减大促特权', minAmount: 300, discountAmount: 50, startTime: '2026-01-01', endTime: '2026-12-31' },
   { id: 3, name: '数码高额满减', minAmount: 1000, discountAmount: 150, startTime: '2026-01-01', endTime: '2026-12-31' }
+]
+
+const mockChatMessages = [
+  {
+    id: 1,
+    userId: 7,
+    content: '您好！欢迎来到 E-MALL 全球品质严选商城，我是您的专属智能客服小E。请问有什么可以为您服务？💖',
+    senderRole: 1,
+    type: '在线沟通',
+    createTime: '2026-09-02 14:00:00'
+  }
+]
+
+const mockNotices = [
+  {
+    id: 1,
+    title: '🎉 欢迎来到 E-MALL 全球品质严选商城！',
+    content: '新店开业狂欢盛典，全场限时特惠直降，更有大额神券每日限量领取，祝您购物愉快！',
+    isActive: 1,
+    createTime: '2026-09-01 10:00:00'
+  },
+  {
+    id: 2,
+    title: '📢 关于官方速运次日达配送时效升级公告',
+    content: '即日起全国 300+ 核心城市支持官方自营仓储直发，最快次日送达上门，安心售后无忧保障！',
+    isActive: 1,
+    createTime: '2026-09-02 09:30:00'
+  }
 ]
 
 const mockHotSearches = [
@@ -58,6 +177,7 @@ const mockProducts = [
     promoEndTime: '2026-12-31 23:59:59',
     stock: 68,
     sales: 420,
+    status: 1,
     categoryId: 1,
     picUrl: 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?auto=format&fit=crop&w=600&q=80',
     subImages: [
@@ -76,6 +196,7 @@ const mockProducts = [
     promoEndTime: '2026-12-31 23:59:59',
     stock: 150,
     sales: 780,
+    status: 1,
     categoryId: 1,
     picUrl: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=600&q=80',
     subImages: ['https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=600&q=80'],
@@ -88,6 +209,7 @@ const mockProducts = [
     price: 499,
     stock: 95,
     sales: 340,
+    status: 1,
     categoryId: 2,
     picUrl: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=600&q=80',
     subImages: ['https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=600&q=80'],
@@ -100,6 +222,7 @@ const mockProducts = [
     price: 199,
     stock: 260,
     sales: 620,
+    status: 1,
     categoryId: 1,
     picUrl: 'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?auto=format&fit=crop&w=600&q=80',
     subImages: ['https://images.unsplash.com/photo-1583863788434-e58a36330cf0?auto=format&fit=crop&w=600&q=80'],
@@ -112,6 +235,7 @@ const mockProducts = [
     price: 129,
     stock: 310,
     sales: 890,
+    status: 1,
     categoryId: 3,
     picUrl: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80',
     subImages: ['https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80'],
@@ -124,6 +248,7 @@ const mockProducts = [
     price: 69,
     stock: 500,
     sales: 1420,
+    status: 1,
     categoryId: 4,
     picUrl: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?auto=format&fit=crop&w=600&q=80',
     subImages: ['https://images.unsplash.com/photo-1556679343-c7306c1976bc?auto=format&fit=crop&w=600&q=80'],
@@ -248,6 +373,12 @@ const server = http.createServer((req, res) => {
     return res.end(JSON.stringify(mockHotSearches))
   }
 
+  // 4.1 Notices
+  if (pathname === '/api/interaction/notice/active') {
+    res.writeHead(200)
+    return res.end(JSON.stringify(mockNotices))
+  }
+
   // 5. Product list
   if (pathname === '/api/product/list') {
     const categoryId = parsedUrl.query.categoryId
@@ -289,19 +420,107 @@ const server = http.createServer((req, res) => {
     return res.end(JSON.stringify(skus))
   }
 
-  // 9. User login
-  if (pathname === '/api/user/login' || pathname === '/api/admin/login') {
-    res.writeHead(200)
-    return res.end(JSON.stringify({
-      token: 'emall-live-session-token',
-      user: {
+  // 9. User and Admin login
+  if (pathname === '/api/user/adminLogin' || pathname === '/api/admin/login') {
+    let body = ''
+    req.on('data', chunk => { body += chunk })
+    req.on('end', () => {
+      let data = {}
+      try { data = JSON.parse(body) } catch(e) {}
+      const targetName = data.username || 'admin'
+      const matched = mockUsers.find(u => u.username === targetName && u.role >= 1) || mockUsers[0]
+      res.writeHead(200)
+      res.end(JSON.stringify({
+        token: 'emall-admin-jwt-token-' + matched.id,
+        user: matched
+      }))
+    })
+    return
+  }
+
+  if (pathname === '/api/user/login') {
+    let body = ''
+    req.on('data', chunk => { body += chunk })
+    req.on('end', () => {
+      let data = {}
+      try { data = JSON.parse(body) } catch(e) {}
+      const targetName = data.username || 'buyer'
+      const matched = mockUsers.find(u => u.username === targetName) || {
         id: 7,
-        username: 'buyer',
-        nickname: 'VIP星选体验官',
-        role: pathname.includes('admin') ? 1 : 0,
+        username: targetName,
+        nickname: targetName,
+        role: 0,
         status: 1
       }
-    }))
+      res.writeHead(200)
+      res.end(JSON.stringify({
+        token: 'emall-user-jwt-token-' + matched.id,
+        user: matched
+      }))
+    })
+    return
+  }
+
+  // 9.1 User List (Admin)
+  if (pathname === '/api/user/list') {
+    res.writeHead(200)
+    return res.end(JSON.stringify(mockUsers))
+  }
+
+  // 9.2 Add User / Admin
+  if (pathname === '/api/user/add') {
+    let body = ''
+    req.on('data', chunk => { body += chunk })
+    req.on('end', () => {
+      let data = {}
+      try { data = JSON.parse(body) } catch(e) {}
+      const newUser = {
+        id: mockUsers.length + 1,
+        username: data.username || 'user_' + Date.now(),
+        nickname: data.nickname || data.username,
+        phone: data.phone || '13800000000',
+        email: data.email || `${data.username}@emall.com`,
+        avatar: data.avatar || '',
+        role: data.role !== undefined ? Number(data.role) : 0,
+        status: data.status !== undefined ? Number(data.status) : 1,
+        createTime: '2026-09-02 ' + new Date().toLocaleTimeString('zh-CN', { hour12: false })
+      }
+      mockUsers.unshift(newUser)
+      res.writeHead(200)
+      res.end(JSON.stringify('账号创建成功'))
+    })
+    return
+  }
+
+  // 9.3 Update User / Status
+  if (pathname === '/api/user/update') {
+    let body = ''
+    req.on('data', chunk => { body += chunk })
+    req.on('end', () => {
+      let data = {}
+      try { data = JSON.parse(body) } catch(e) {}
+      const u = mockUsers.find(item => item.id === Number(data.id))
+      if (u) {
+        if (data.nickname !== undefined) u.nickname = data.nickname
+        if (data.phone !== undefined) u.phone = data.phone
+        if (data.email !== undefined) u.email = data.email
+        if (data.role !== undefined) u.role = Number(data.role)
+        if (data.status !== undefined) u.status = Number(data.status)
+      }
+      res.writeHead(200)
+      res.end(JSON.stringify('用户资料修改成功'))
+    })
+    return
+  }
+
+  // 9.4 Delete User
+  const userDeleteMatch = pathname.match(/^\/api\/user\/(\d+)$/)
+  if (req.method === 'DELETE' && userDeleteMatch) {
+    const id = Number(userDeleteMatch[1])
+    const idx = mockUsers.findIndex(u => u.id === id)
+    if (idx !== -1) mockUsers.splice(idx, 1)
+    res.writeHead(200)
+    return res.end(JSON.stringify('账号已彻底删除'))
   }
 
   // 10. User profile
@@ -322,6 +541,127 @@ const server = http.createServer((req, res) => {
   if (pathname === '/api/order/my') {
     res.writeHead(200)
     return res.end(JSON.stringify(mockOrders))
+  }
+
+  // 11.0 Admin orders
+  if (pathname === '/api/order/list') {
+    res.writeHead(200)
+    return res.end(JSON.stringify({
+      records: mockOrders,
+      total: mockOrders.length
+    }))
+  }
+
+  // 11.1 Admin notices
+  if (pathname === '/api/interaction/notice/list' || pathname === '/api/notice/list') {
+    res.writeHead(200)
+    return res.end(JSON.stringify(mockNotices))
+  }
+
+  // 11.2 Admin feedbacks
+  if (pathname === '/api/interaction/feedback/list' || pathname === '/api/feedback/list') {
+    res.writeHead(200)
+    return res.end(JSON.stringify([
+      { id: 1, userId: 1001, content: '希望增加更多数码产品的限时秒杀活动！', reply: '感谢您的建议，下周将上线数码狂欢季！', status: 1, createTime: '2026-09-01 14:20:00' }
+    ]))
+  }
+
+  // 11.3 Chat User List for Admin
+  if (pathname === '/api/interaction/chat/user-list') {
+    const userMap = new Map()
+    // 按时间降序遍历获取每个买家的最新一条消息
+    for (let i = mockChatMessages.length - 1; i >= 0; i--) {
+      const msg = mockChatMessages[i]
+      if (!userMap.has(msg.userId)) {
+        userMap.set(msg.userId, msg)
+      }
+    }
+    const list = Array.from(userMap.values())
+    if (list.length === 0) {
+      list.push({
+        id: 1,
+        userId: 7,
+        content: '买家暂未发送新咨询',
+        senderRole: 0,
+        type: '在线沟通',
+        createTime: '2026-09-02 14:00:00'
+      })
+    }
+    res.writeHead(200)
+    return res.end(JSON.stringify(list))
+  }
+
+  // 11.4 Chat history for specific user
+  if (pathname === '/api/interaction/chat/history') {
+    const targetUserId = parsedUrl.query.userId || 7
+    const history = mockChatMessages.filter(m => String(m.userId) === String(targetUserId))
+    res.writeHead(200)
+    return res.end(JSON.stringify(history))
+  }
+
+  // 11.5 Chat message send (both buyer and admin)
+  if (pathname === '/api/interaction/chat/send') {
+    let body = ''
+    req.on('data', chunk => { body += chunk })
+    req.on('end', () => {
+      let data = {}
+      try { data = JSON.parse(body) } catch(e) {}
+      const nowStr = new Date().toLocaleTimeString('zh-CN', { hour12: false })
+      const newMsg = {
+        id: mockChatMessages.length + 1,
+        userId: Number(data.userId || 7),
+        content: data.content || '',
+        senderRole: data.senderRole !== undefined ? Number(data.senderRole) : 0,
+        type: '在线沟通',
+        createTime: '2026-09-02 ' + nowStr
+      }
+      mockChatMessages.push(newMsg)
+
+      res.writeHead(200)
+      res.end(JSON.stringify('发送成功'))
+    })
+    return
+  }
+
+  // 11.5 Address List
+  if (pathname === '/api/address/list') {
+    res.writeHead(200)
+    return res.end(JSON.stringify([
+      { id: 1, userId: 7, receiverName: '张三 (默认)', receiverPhone: '13800138000', province: '北京市', city: '北京市', district: '海淀区', detailAddress: '中关村南大街 1 号极客科技大厦 A 座 1801', isDefault: 1 },
+      { id: 2, userId: 7, receiverName: '李四', receiverPhone: '13911112222', province: '上海市', city: '上海市', district: '浦东新区', detailAddress: '世纪大道 88 号环球金融中心 32 楼', isDefault: 0 }
+    ]))
+  }
+
+  // 11.6 User Usable Coupons
+  if (pathname === '/api/coupon/myUsable') {
+    res.writeHead(200)
+    return res.end(JSON.stringify([
+      { userCouponId: 101, couponId: 1, name: '新人专享直降神券', minAmount: 100, discountAmount: 20, endTime: '2026-12-31' },
+      { userCouponId: 102, couponId: 2, name: '满减大促特权神券', minAmount: 300, discountAmount: 50, endTime: '2026-12-31' }
+    ]))
+  }
+
+  // 11.7 Order Create
+  if (pathname === '/api/order/create') {
+    let body = ''
+    req.on('data', chunk => { body += chunk })
+    req.on('end', () => {
+      const newId = 8888 + Math.floor(Math.random() * 1000)
+      res.writeHead(200)
+      res.end(JSON.stringify({
+        orderId: newId,
+        orderSn: 'EMALL20260902' + newId,
+        totalAmount: 1109.00
+      }))
+    })
+    return
+  }
+
+  // 11.8 Order Status Update (Pay / Cancel)
+  const statusMatch = pathname.match(/^\/api\/order\/status\/(\d+)\/(\d+)$/)
+  if (statusMatch) {
+    res.writeHead(200)
+    return res.end(JSON.stringify({ code: 200, message: '状态更新成功' }))
   }
 
   // 12. Dashboard stats

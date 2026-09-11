@@ -23,17 +23,21 @@ const scrollToBottom = () => {
 }
 
 const syncChatData = async () => {
-  if (activeTab.value !== 'chat') return // ✨ 性能优化：不在聊天 Tab 时停止无意义的轮询刷新
+  if (activeTab.value !== 'chat') return
   try {
     const users: any = await request.get('/interaction/chat/user-list')
-    userList.value = users
+    userList.value = Array.isArray(users) ? users : (users?.data || [])
+    if (!activeUserId.value && userList.value.length > 0) {
+      activeUserId.value = userList.value[0].userId
+    }
     if (activeUserId.value) {
       const history: any = await request.get('/interaction/chat/history', { params: { userId: activeUserId.value } })
-      if (history.length > chatHistory.value.length) {
-        chatHistory.value = history
+      const list = Array.isArray(history) ? history : (history?.data || [])
+      if (list.length > chatHistory.value.length) {
+        chatHistory.value = list
         scrollToBottom() 
       } else {
-        chatHistory.value = history
+        chatHistory.value = list
       }
     }
   } catch (error) {}

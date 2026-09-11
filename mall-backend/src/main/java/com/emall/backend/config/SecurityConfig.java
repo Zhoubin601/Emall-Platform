@@ -66,6 +66,7 @@ public class SecurityConfig {
                                 "/api/dashboard/**",
                                 "/api/product/add",
                                 "/api/product/update",
+                                "/api/product/cancelPromo/**",
                                 "/api/product/delete/**",
                                 "/api/product/export",
                                 "/api/product/import",

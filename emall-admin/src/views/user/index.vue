@@ -66,8 +66,8 @@ const getSafeAvatar = (avatarPath?: string) => {
 const fetchUsers = async () => {
   loading.value = true
   try {
-    const res = await request.get<any, SysUser[]>('/user/list')
-    userList.value = res
+    const res: any = await request.get('/user/list')
+    userList.value = Array.isArray(res) ? res : (res?.records || res?.data || [])
   } catch (error) {
     ElMessage.error('获取用户列表失败')
   } finally {

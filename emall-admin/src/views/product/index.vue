@@ -31,8 +31,18 @@ const productForm = reactive<Product>({
 
 const fetchProducts = async () => {
   loading.value = true
-  try { productList.value = await request.get<any, Product[]>('/product/list') } 
-  finally { loading.value = false }
+  try {
+    const res: any = await request.get<any, Product[]>('/product/list')
+    const list = Array.isArray(res) ? res : (res?.records || res?.data || [])
+    productList.value = list.map((p: any) => ({
+      ...p,
+      status: p.status !== undefined && p.status !== null ? Number(p.status) : 1
+    }))
+  } catch (error) {
+    productList.value = []
+  } finally {
+    loading.value = false
+  }
 }
 
 const fetchCategories = async () => {
@@ -160,16 +170,51 @@ const submitSkuForm = async () => {
 
 // ================= 秒杀设置模块 =================
 const promoDialogVisible = ref(false)
-const promoForm = reactive({ id: 0, promoPrice: 0, timeRange: [] as string[] })
+const promoSkus = ref<any[]>([])
+const selectedProductStock = ref(0)
+const promoForm = reactive({
+  id: 0,
+  promoSkuId: 0,
+  promoPrice: 0,
+  promoStock: 10,
+  timeRange: [] as string[]
+})
 
-const openPromoDialog = (row: Product) => {
+const openPromoDialog = async (row: Product) => {
   promoForm.id = row.id!
   promoForm.promoPrice = row.promoPrice || row.price
+  promoForm.promoStock = (row as any).promoStock || 10
+  promoForm.promoSkuId = (row as any).promoSkuId || 0
   promoForm.timeRange = (row.promoStartTime && row.promoEndTime) ? [row.promoStartTime, row.promoEndTime] : []
+  selectedProductStock.value = row.stock || 0
+
+  promoSkus.value = []
+  try {
+    const res: any = await request.get('/product/skus/' + row.id)
+    promoSkus.value = Array.isArray(res) ? res : (res?.data || [])
+  } catch (e) {}
+
   promoDialogVisible.value = true
 }
 
+const currentAvailableStock = computed(() => {
+  if (promoForm.promoSkuId && promoForm.promoSkuId > 0) {
+    const sku = promoSkus.value.find(s => s.id === promoForm.promoSkuId)
+    return sku ? (sku.stock || 0) : selectedProductStock.value
+  }
+  return selectedProductStock.value
+})
+
 const submitPromoForm = async () => {
+  if (!promoForm.promoPrice || promoForm.promoPrice <= 0) {
+    return ElMessage.warning('请输入有效的秒杀特惠价格')
+  }
+  if (!promoForm.promoStock || promoForm.promoStock <= 0) {
+    return ElMessage.warning('请设置秒杀限量库存（必须大于 0）')
+  }
+  if (promoForm.promoStock > currentAvailableStock.value) {
+    return ElMessage.error(`⚠️ 秒杀限量库存 (${promoForm.promoStock}件) 不能超过当前所选规格的可用库存 (${currentAvailableStock.value}件)！`)
+  }
   if (!promoForm.timeRange || promoForm.timeRange.length !== 2) {
     return ElMessage.warning('请选择完整的秒杀起止时间')
   }
@@ -178,22 +223,29 @@ const submitPromoForm = async () => {
     await request.put('/product/update', {
       id: promoForm.id,
       promoPrice: promoForm.promoPrice,
+      promoStock: promoForm.promoStock,
+      promoSkuId: promoForm.promoSkuId > 0 ? promoForm.promoSkuId : null,
       promoStartTime: promoForm.timeRange[0],
       promoEndTime: promoForm.timeRange[1]
     })
-    ElMessage.success('🎉 秒杀活动设置成功！')
+    ElMessage.success('🎉 秒杀活动与限量库存设置成功！')
     promoDialogVisible.value = false
-    fetchProducts()
+    await fetchProducts()
   } finally { submitLoading.value = false }
 }
 
 const clearPromo = async () => {
   try {
-    await request.put('/product/update', { id: promoForm.id, promoPrice: null, promoStartTime: null, promoEndTime: null })
-    ElMessage.success('已取消该商品的秒杀活动')
+    submitLoading.value = true
+    await request.put(`/product/cancelPromo/${promoForm.id}`)
+    ElMessage.success('🎉 已成功取消该商品的秒杀活动！')
     promoDialogVisible.value = false
-    fetchProducts()
-  } catch (e) {}
+    await fetchProducts()
+  } catch (e: any) {
+    ElMessage.error(e?.message || '取消秒杀失败，请重试')
+  } finally {
+    submitLoading.value = false
+  }
 }
 
 onMounted(() => { fetchCategories(); fetchProducts() })
@@ -262,14 +314,32 @@ onMounted(() => { fetchCategories(); fetchProducts() })
       </el-table>
     </el-card>
 
-    <el-dialog v-model="promoDialogVisible" title="🔥 设置限时秒杀活动" width="500px" class="glass-dialog">
+    <el-dialog v-model="promoDialogVisible" title="🔥 设置限时秒杀活动与限量库存" width="520px" class="glass-dialog">
       <el-form label-width="100px" class="rich-form">
-        <el-form-item label="秒杀特价" required>
-          <el-input-number v-model="promoForm.promoPrice" :min="0.01" :precision="2" style="width: 100%;" />
-          <div style="font-size: 12px; color: #94a3b8; line-height: 1.2; margin-top: 5px;">
-            设置后，活动期间该商品所有规格均强制覆盖为此特价。
+        <el-form-item label="参与规格">
+          <el-select v-model="promoForm.promoSkuId" placeholder="选择指定规格（留空为全规格适用）" style="width: 100%;">
+            <el-option :value="0" :label="`【全规格适用】(总库存: ${selectedProductStock} 件)`" />
+            <el-option v-for="sku in promoSkus" :key="sku.id" :label="`${sku.specName} (库存: ${sku.stock}件 / 现价: ¥${sku.price})`" :value="sku.id" />
+          </el-select>
+          <div style="font-size: 12px; color: #0284c7; line-height: 1.4; margin-top: 4px;">
+            当前所选规格可用库存上限：<strong>{{ currentAvailableStock }}</strong> 件
           </div>
         </el-form-item>
+
+        <el-form-item label="秒杀特价" required>
+          <el-input-number v-model="promoForm.promoPrice" :min="0.01" :precision="2" style="width: 100%;" />
+          <div style="font-size: 12px; color: #94a3b8; line-height: 1.2; margin-top: 4px;">
+            活动期间，买家享受此直降特惠价格。
+          </div>
+        </el-form-item>
+
+        <el-form-item label="秒杀限量" required>
+          <el-input-number v-model="promoForm.promoStock" :min="1" :max="currentAvailableStock" style="width: 100%;" />
+          <div style="font-size: 12px; color: #e11d48; line-height: 1.2; margin-top: 4px;">
+            ⚡ 秒杀限量库存必须 ≤ 当前规格可用库存 (当前最大: {{ currentAvailableStock }} 件)。
+          </div>
+        </el-form-item>
+
         <el-form-item label="起止时间" required>
           <el-date-picker
             v-model="promoForm.timeRange"
@@ -283,9 +353,11 @@ onMounted(() => { fetchCategories(); fetchProducts() })
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="clearPromo" type="danger" plain round style="float: left;">取消此活动</el-button>
-        <el-button @click="promoDialogVisible = false" round>取消</el-button>
-        <el-button type="primary" @click="submitPromoForm" :loading="submitLoading" round>保存秒杀</el-button>
+        <el-button @click="clearPromo" type="danger" plain round style="float: left;" :loading="submitLoading">
+          🗑️ 彻底取消此商品秒杀
+        </el-button>
+        <el-button @click="promoDialogVisible = false" round>关闭窗口</el-button>
+        <el-button type="primary" @click="submitPromoForm" :loading="submitLoading" round>保存秒杀设置</el-button>
       </template>
     </el-dialog>
 

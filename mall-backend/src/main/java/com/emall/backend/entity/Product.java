@@ -49,6 +49,12 @@ public class Product {
     private BigDecimal promoPrice;
 
     @ExcelIgnore
+    private Integer promoStock;
+
+    @ExcelIgnore
+    private Long promoSkuId;
+
+    @ExcelIgnore
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private LocalDateTime promoStartTime;
 

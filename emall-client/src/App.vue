@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, onMounted, onUnmounted } from 'vue'
 import { ChatDotRound, Position } from '@element-plus/icons-vue'
 import { useUserStore } from './stores/user'
 import { ElMessage } from 'element-plus'
@@ -18,6 +18,19 @@ const chatList = ref<any[]>([])
 const chatBoxRef = ref<HTMLElement | null>(null)
 let pollTimer: any = null
 
+const handleOpenCustomerService = () => {
+  openChat()
+}
+
+onMounted(() => {
+  window.addEventListener('open-customer-service', handleOpenCustomerService)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('open-customer-service', handleOpenCustomerService)
+  if (pollTimer) clearInterval(pollTimer)
+})
+
 const scrollToBottom = () => {
   nextTick(() => {
     setTimeout(() => {
@@ -33,12 +46,12 @@ const loadChatHistory = async () => {
   if (!userStore.userInfo) return
   try {
     const res: any = await request.get('/interaction/chat/history', { params: { userId: userStore.userInfo.id } })
-    // 如果消息变多了，才触发滚动到底部
-    if (res.length > chatList.value.length) {
-      chatList.value = res
+    const list = Array.isArray(res) ? res : (res?.records || res?.data || [])
+    if (list.length > chatList.value.length) {
+      chatList.value = list
       scrollToBottom()
     } else {
-      chatList.value = res
+      chatList.value = list
     }
   } catch (e) {
     console.error('刷新消息失败')
@@ -53,8 +66,9 @@ const openChat = () => {
   }
   chatDrawerVisible.value = true
   loadChatHistory()
-  // ✨ 开启短轮询：每3秒刷新一次消息
-  pollTimer = setInterval(loadChatHistory, 3000)
+  // ✨ 开启短轮询：每2秒刷新一次消息
+  if (pollTimer) clearInterval(pollTimer)
+  pollTimer = setInterval(loadChatHistory, 2000)
 }
 
 const closeChat = () => {
@@ -65,15 +79,32 @@ const closeChat = () => {
 const sendMessage = async () => {
   if (!chatInput.value.trim()) return ElMessage.warning('不能发送空消息哦')
   
+  const text = chatInput.value.trim()
+  chatInput.value = ''
   isSending.value = true
+
+  // 本地乐观更新气泡
+  const now = new Date()
+  const timeStr = now.toTimeString().substring(0, 5)
+  chatList.value.push({
+    id: Date.now(),
+    userId: userStore.userInfo?.id,
+    content: text,
+    senderRole: 0,
+    createTime: '2026-09-02 ' + timeStr
+  })
+  scrollToBottom()
+  
   try {
     await request.post('/interaction/chat/send', {
       userId: userStore.userInfo?.id,
-      content: chatInput.value,
+      content: text,
       senderRole: 0 // ✨ 0 代表买家发送
     })
-    chatInput.value = ''
-    await loadChatHistory() // 发完立刻刷新
+    // 延迟 500ms 刷新以拉取客服智能回复
+    setTimeout(async () => {
+      await loadChatHistory()
+    }, 500)
   } catch (error) {
     ElMessage.error('发送失败，请检查网络')
   } finally {

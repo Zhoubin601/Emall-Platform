@@ -1,6 +1,7 @@
 package com.emall.backend.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.emall.backend.entity.*;
 import com.emall.backend.dto.order.CreateOrderItemRequest;
 import com.emall.backend.dto.order.CreateOrderRequest;
@@ -99,12 +100,23 @@ public class OrderService {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "商品已下架或不存在");
             }
 
-            BigDecimal unitPrice = effectivePrice(product, sku, now);
+            boolean isPromo = isPromoApplicable(product, sku, now);
+            if (isPromo && product.getPromoStock() != null) {
+                if (product.getPromoStock() < submittedItem.productCount()) {
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, "⚡ 该商品秒杀限量库存不足，当前仅剩 " + product.getPromoStock() + " 件！");
+                }
+            }
+
+            BigDecimal unitPrice = isPromo ? product.getPromoPrice() : sku.getPrice();
+            if (unitPrice == null || unitPrice.signum() < 0) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "商品价格配置异常");
+            }
+
             OrderItem snapshot = new OrderItem();
             snapshot.setProductId(product.getId());
             snapshot.setSkuId(sku.getId());
             snapshot.setProductName(product.getName() + " (" + sku.getSpecName() + ")");
-            snapshot.setProductPrice(unitPrice);
+            snapshot.setProductPrice(unitPrice.setScale(2, RoundingMode.HALF_UP));
             snapshot.setProductCount(submittedItem.productCount());
             snapshots.add(snapshot);
             subtotal = subtotal.add(unitPrice.multiply(BigDecimal.valueOf(submittedItem.productCount())));
@@ -119,6 +131,29 @@ public class OrderService {
             if (skuMapper.deductStock(item.getSkuId(), item.getProductCount()) != 1) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "库存不足，请刷新后重试");
             }
+
+            // ✨ 核心：秒杀限量扣减与售罄自动取消秒杀闭环
+            Product p = productMapper.selectById(item.getProductId());
+            Sku s = skuMapper.selectById(item.getSkuId());
+            if (p != null && isPromoApplicable(p, s, now)) {
+                if (p.getPromoStock() != null) {
+                    int remaining = p.getPromoStock() - item.getProductCount();
+                    if (remaining <= 0) {
+                        // 限量全部买完/抢光！自动清空秒杀活动并切回日常销售
+                        UpdateWrapper<Product> clearPromoWrapper = new UpdateWrapper<>();
+                        clearPromoWrapper.eq("id", p.getId())
+                                .setSql("promo_price = NULL, promo_stock = NULL, promo_sku_id = NULL, promo_start_time = NULL, promo_end_time = NULL");
+                        productMapper.update(null, clearPromoWrapper);
+                    } else {
+                        // 扣减秒杀剩余限量库存
+                        UpdateWrapper<Product> deductPromoWrapper = new UpdateWrapper<>();
+                        deductPromoWrapper.eq("id", p.getId())
+                                .set("promo_stock", remaining);
+                        productMapper.update(null, deductPromoWrapper);
+                    }
+                }
+            }
+
             affectedProducts.add(item.getProductId());
         }
 
@@ -205,12 +240,25 @@ public class OrderService {
         return coupon.getDiscountAmount();
     }
 
+    public boolean isPromoApplicable(Product product, Sku sku, LocalDateTime now) {
+        if (product.getPromoPrice() == null
+                || product.getPromoStartTime() == null
+                || product.getPromoEndTime() == null
+                || now.isBefore(product.getPromoStartTime())
+                || now.isAfter(product.getPromoEndTime())) {
+            return false;
+        }
+        if (product.getPromoSkuId() != null && !Objects.equals(product.getPromoSkuId(), sku.getId())) {
+            return false;
+        }
+        if (product.getPromoStock() != null && product.getPromoStock() <= 0) {
+            return false;
+        }
+        return true;
+    }
+
     private BigDecimal effectivePrice(Product product, Sku sku, LocalDateTime now) {
-        boolean promoActive = product.getPromoPrice() != null
-                && product.getPromoStartTime() != null
-                && product.getPromoEndTime() != null
-                && !now.isBefore(product.getPromoStartTime())
-                && !now.isAfter(product.getPromoEndTime());
+        boolean promoActive = isPromoApplicable(product, sku, now);
         BigDecimal price = promoActive ? product.getPromoPrice() : sku.getPrice();
         if (price == null || price.signum() < 0) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "商品价格配置异常");

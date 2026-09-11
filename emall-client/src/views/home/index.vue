@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue' 
-import { Search, ShoppingCart, StarFilled, Ticket, Location, ArrowDown, Right } from '@element-plus/icons-vue'
+import { 
+  Search, ShoppingCart, StarFilled, Ticket, Location, ArrowDown, Right, Service
+} from '@element-plus/icons-vue'
 import request from '../../utils/request'
 import { useRouter } from 'vue-router'
 import { useCartStore } from '../../stores/cart'
@@ -11,17 +13,19 @@ interface Product {
   id: number; name: string; price: number; stock: number;
   picUrl?: string; description: string; status: number;
   categoryId: number; sales: number;      
-  promoPrice?: number; promoStartTime?: string; promoEndTime?: string;
+  promoPrice?: number; promoStartTime?: string; promoEndTime?: string; promoStock?: number;
 }
 
 interface Category { id: number; name: string; parentId: number; level: number; }
 interface HotSearch { id: number; keyword: string; searchCount: number; }
 interface Coupon { id: number; name: string; minAmount: number; discountAmount: number; endTime: string; }
+interface Notice { id: number; title: string; content: string; isActive: number; createTime: string; }
 
 const productList = ref<Product[]>([])
 const hotSearchList = ref<HotSearch[]>([]) 
 const couponList = ref<Coupon[]>([]) 
 const bannerList = ref<any[]>([])
+const noticeList = ref<Notice[]>([])
 
 const loading = ref(false)
 const searchKey = ref('') 
@@ -38,25 +42,89 @@ const pageSize = ref(12)
 // 快报 Tab
 const newsTab = ref('hot')
 
+// 城市定位与切换
+const currentCity = ref(localStorage.getItem('user_city') || '北京市')
+const cityDialogVisible = ref(false)
+const hotCities = [
+  '北京市', '上海市', '广州市', '深圳市', '杭州市', '成都市',
+  '武汉市', '南京市', '西安市', '重庆市', '苏州市', '天津市'
+]
+const selectCity = (city: string) => {
+  currentCity.value = city
+  localStorage.setItem('user_city', city)
+  cityDialogVisible.value = false
+  ElMessage.success(`已成功切换到【${city}】，配送仓储已为您智能就近匹配！`)
+}
+
+// 公告弹窗状态
+const currentNotice = ref<Notice | null>(null)
+const noticeDialogVisible = ref(false)
+const allNoticesDialogVisible = ref(false)
+
+const viewNotice = (notice: Notice) => {
+  currentNotice.value = notice
+  noticeDialogVisible.value = true
+}
+
+const openAllNotices = () => {
+  allNoticesDialogVisible.value = true
+}
+
+// 便民服务引导弹窗
+const serviceDialogVisible = ref(false)
+const serviceDialogTitle = ref('')
+const serviceDialogContent = ref('')
+
+const openServiceGuide = (type: string) => {
+  if (type === 'phone') {
+    serviceDialogTitle.value = '📱 话费充值与流量直充服务'
+    serviceDialogContent.value = 'E-MALL 话费与流量充值中心直连运营商核心通道，支持全国手机号码即时到账。当前正在系统升级与维护中，即将开放自主在线充值，如有紧急充值需求请联系在线客服协助！'
+  } else if (type === 'travel') {
+    serviceDialogTitle.value = '✈️ 商旅机票与差旅预订通道'
+    serviceDialogContent.value = '本专区为企业差旅与高频出行用户提供全球航线特惠直降、专属退改保障服务。系统现已开放企业VIP专属内测，个人通道即将上线！'
+  } else if (type === 'hotel') {
+    serviceDialogTitle.value = '🏨 酒店住宿精选预订'
+    serviceDialogContent.value = '汇集全球优质星级酒店及精选民宿，支持到店付款与信用住免押金权益，相关通道即将接入！'
+  } else if (type === 'b2b') {
+    serviceDialogTitle.value = '🏢 企业采购与批量采购通道'
+    serviceDialogContent.value = '面向企事业单位提供阳光采购、大额团购定制、专票直开及账期服务。如有批量团购需求，请直接点击客服进行人工对接！'
+  } else if (type === 'trace') {
+    serviceDialogTitle.value = '🛡️ 全球正品溯源保障体系'
+    serviceDialogContent.value = 'E-MALL 所有自营商品均经过海关检验与一物一码区块链溯源，消费者收到商品后可刮开防伪涂层或扫描包装二维码查看全链路验真报告。'
+  }
+  serviceDialogVisible.value = true
+}
+
+// 全局唤起客服抽屉
+const openCustomerService = () => {
+  window.dispatchEvent(new CustomEvent('open-customer-service'))
+}
+
 // 秒杀倒计时
-const countdownHours = ref('02')
-const countdownMinutes = ref('45')
-const countdownSeconds = ref('30')
+const countdownStatusText = ref('本场倒计时：')
+const countdownHours = ref('00')
+const countdownMinutes = ref('00')
+const countdownSeconds = ref('00')
 let countdownTimer: any = null
 
 const userStore = useUserStore()
 const router = useRouter()
 const cartStore = useCartStore()
 
+// 频道栏动态提取前 4 个一级分类
+const navChannelCategories = computed(() => {
+  return allCategories.value.filter(c => c.level === 1).slice(0, 4)
+})
+
 // 多级分类数据关联
 const level1Categories = computed(() => [
   { id: 0, name: '全部商品分类', parentId: 0, level: 1, subTags: '数码 / 办公 / 服饰 / 居家' },
   ...allCategories.value.filter(c => c.level === 1).map(c => ({
     ...c,
-    subTags: c.name === '手机数码' ? '手机 / 耳机 / 智能数码' :
-             c.name === '电脑办公' ? '笔记本 / 外设 / 显示器' :
-             c.name === '服装服饰' ? '男装 / 女装 / 潮流运动' :
-             c.name === '家居日用' ? '个护 / 居家 / 冲饮美食' : '品质生活 / 热销优选'
+    subTags: c.name.includes('数码') ? '手机 / 耳机 / 智能数码' :
+             c.name.includes('电脑') ? '笔记本 / 外设 / 显示器' :
+             c.name.includes('服饰') ? '男装 / 女装 / 潮流运动' :
+             c.name.includes('日用') || c.name.includes('家') ? '个护 / 居家 / 冲饮美食' : '品质生活 / 热销优选'
   }))
 ])
 
@@ -91,6 +159,16 @@ const fetchAds = async () => {
   }
 }
 
+// ✨ 真实拉取系统激活公告
+const fetchNotices = async () => {
+  try {
+    const res = await request.get<any, Notice[]>('/interaction/notice/active')
+    noticeList.value = res || []
+  } catch (e) {
+    console.error('拉取公告失败')
+  }
+}
+
 const fetchProducts = async () => {
   loading.value = true
   try {
@@ -108,6 +186,7 @@ const fetchProducts = async () => {
   }
 }
 
+// 检查秒杀是否进行中
 const isFlashSaleActive = (product: Product) => {
   if (!product.promoStartTime || !product.promoEndTime || !product.promoPrice) return false
   const now = new Date().getTime()
@@ -116,11 +195,19 @@ const isFlashSaleActive = (product: Product) => {
   return now >= start && now <= end
 }
 
+// 检查秒杀是否未开始（预告）
+const isFlashSaleUpcoming = (product: Product) => {
+  if (!product.promoStartTime || !product.promoEndTime || !product.promoPrice) return false
+  const now = new Date().getTime()
+  const start = new Date(product.promoStartTime.replace(/-/g, '/')).getTime()
+  return now < start
+}
+
 // 筛选与排序
 const filteredProducts = computed(() => {
   let list = [...productList.value]
   if (sortBy.value === 'promo') {
-    list = list.filter(p => isFlashSaleActive(p))
+    list = list.filter(p => isFlashSaleActive(p) || (p.promoPrice && p.promoPrice > 0))
   } else if (sortBy.value === 'price_asc') {
     list.sort((a, b) => a.price - b.price)
   } else if (sortBy.value === 'price_desc') {
@@ -129,10 +216,18 @@ const filteredProducts = computed(() => {
   return list
 })
 
-// 秒杀精选产品
+// ✨ 真实秒杀精选产品计算（严格只筛选处于进行中或预告中的真实秒杀商品）
 const seckillProducts = computed(() => {
-  return productList.value.slice(0, 6)
+  return productList.value.filter(p => isFlashSaleActive(p) || isFlashSaleUpcoming(p))
 })
+
+// ✨ 真实秒杀抢购进度计算（精准基于秒杀已售量与秒杀限量库存）
+const calculateProgress = (product: Product) => {
+  const promoSold = (product as any).promoSold || 0
+  const promoLimit = (product as any).promoStock || product.stock || 0
+  if (promoLimit <= 0 || promoSold <= 0) return 0
+  return Math.min(100, Math.round((promoSold / promoLimit) * 100))
+}
 
 // 分页切片计算
 const pagedProducts = computed(() => {
@@ -223,8 +318,8 @@ const handleQuickAdd = async (product: Product) => {
     }
 
     let finalPrice = defaultSku.price
-    if (isFlashSaleActive(product)) {
-      finalPrice = product.promoPrice!
+    if (isFlashSaleActive(product) && product.promoPrice) {
+      finalPrice = product.promoPrice
     }
 
     const itemToAdd = {
@@ -251,19 +346,49 @@ const handleBannerClick = (url: string) => {
   }
 }
 
-// 倒计时时钟
+// ✨ 真实倒计时时钟：基于商品真实活动时间进行动态计算
 const startCountdown = () => {
-  let totalSec = 2 * 3600 + 45 * 60 + 30
-  countdownTimer = setInterval(() => {
-    if (totalSec <= 0) totalSec = 3 * 3600
-    totalSec--
-    const h = Math.floor(totalSec / 3600)
-    const m = Math.floor((totalSec % 3600) / 60)
-    const s = totalSec % 60
+  const updateTick = () => {
+    const now = new Date().getTime()
+    let targetTime: number | null = null
+
+    // 1. 查找正在进行的秒杀中最近的结束时间
+    const activeEnds = productList.value
+      .filter(p => isFlashSaleActive(p))
+      .map(p => new Date(p.promoEndTime!.replace(/-/g, '/')).getTime())
+
+    if (activeEnds.length > 0) {
+      targetTime = Math.min(...activeEnds)
+      countdownStatusText.value = '本场距结束：'
+    } else {
+      // 2. 查找即将开始的秒杀中最近的开始时间
+      const upcomingStarts = productList.value
+        .filter(p => isFlashSaleUpcoming(p))
+        .map(p => new Date(p.promoStartTime!.replace(/-/g, '/')).getTime())
+      
+      if (upcomingStarts.length > 0) {
+        targetTime = Math.min(...upcomingStarts)
+        countdownStatusText.value = '下场距开抢：'
+      } else {
+        // 3. 兜底为今日特惠场次倒计时（至今日 24:00）
+        const midnight = new Date()
+        midnight.setHours(23, 59, 59, 999)
+        targetTime = midnight.getTime()
+        countdownStatusText.value = '今日特惠剩：'
+      }
+    }
+
+    const diff = Math.max(0, Math.floor((targetTime - now) / 1000))
+    const h = Math.floor(diff / 3600)
+    const m = Math.floor((diff % 3600) / 60)
+    const s = diff % 60
     countdownHours.value = h.toString().padStart(2, '0')
     countdownMinutes.value = m.toString().padStart(2, '0')
     countdownSeconds.value = s.toString().padStart(2, '0')
-  }, 1000)
+  }
+
+  updateTick()
+  countdownTimer = setInterval(updateTick, 1000)
 }
 
 onMounted(() => {
@@ -271,6 +396,7 @@ onMounted(() => {
   fetchHotSearches()
   fetchCoupons() 
   fetchAds()
+  fetchNotices()
   fetchProducts()
   startCountdown()
 })
@@ -288,8 +414,8 @@ onUnmounted(() => {
         <div class="topbar-left">
           <span class="location-item">
             <el-icon class="loc-icon"><Location /></el-icon>
-            <span>北京市</span>
-            <span class="loc-switch">[切换]</span>
+            <span>{{ currentCity }}</span>
+            <span class="loc-switch" @click="cityDialogVisible = true">[切换]</span>
           </span>
         </div>
         <div class="topbar-right">
@@ -320,21 +446,21 @@ onUnmounted(() => {
             </template>
           </el-dropdown>
           <span class="divider">|</span>
-          <span class="link-item">企业采购</span>
+          <span class="link-item" @click="openServiceGuide('b2b')">企业采购</span>
           <span class="divider">|</span>
           <el-dropdown trigger="hover">
             <span class="link-item drop-link">客户服务 <el-icon><ArrowDown /></el-icon></span>
             <template #dropdown>
               <el-dropdown-menu class="emall-drop-menu">
                 <el-dropdown-item @click="router.push('/comments')">我的评价</el-dropdown-item>
-                <el-dropdown-item>帮助中心</el-dropdown-item>
-                <el-dropdown-item>售后服务</el-dropdown-item>
-                <el-dropdown-item>在线客服</el-dropdown-item>
+                <el-dropdown-item @click="openAllNotices()">平台公告 & 帮助</el-dropdown-item>
+                <el-dropdown-item @click="openServiceGuide('trace')">正品与售后</el-dropdown-item>
+                <el-dropdown-item @click="openCustomerService()">在线客服</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
           <span class="divider">|</span>
-          <span class="link-item">网站导航</span>
+          <span class="link-item" @click="openAllNotices()">网站导航</span>
         </div>
       </div>
     </div>
@@ -397,15 +523,21 @@ onUnmounted(() => {
           <span>全部商品分类</span>
         </div>
         <ul class="channel-nav-list">
-          <li class="channel-item active" @click="sortBy = 'sales'; currentPage = 1; fetchProducts()">首页精选</li>
-          <li class="channel-item highlight-item" @click="sortBy = 'promo'; currentPage = 1; fetchProducts()">⚡ 限时秒杀</li>
+          <li class="channel-item" :class="{ active: sortBy === 'sales' && activeCategory === 0 }" @click="sortBy = 'sales'; activeCategory = 0; selectedParentId = 0; currentPage = 1; fetchProducts()">首页精选</li>
+          <li class="channel-item highlight-item" :class="{ active: sortBy === 'promo' }" @click="sortBy = 'promo'; currentPage = 1; fetchProducts()">⚡ 限时秒杀</li>
           <li class="channel-item" @click="scrollToProductSection()">领券中心</li>
-          <li class="channel-item" @click="sortBy = 'new'; currentPage = 1; fetchProducts()">新品首发</li>
-          <li class="channel-item" @click="handleLevel1Click(1)">手机数码</li>
-          <li class="channel-item" @click="handleLevel1Click(2)">电脑办公</li>
-          <li class="channel-item" @click="handleLevel1Click(3)">潮流服饰</li>
-          <li class="channel-item" @click="handleLevel1Click(4)">家居日用</li>
-          <li class="channel-item">VIP会员</li>
+          <li class="channel-item" :class="{ active: sortBy === 'new' }" @click="sortBy = 'new'; currentPage = 1; fetchProducts()">新品首发</li>
+          <!-- 动态频道分类列表 -->
+          <li 
+            v-for="cat in navChannelCategories" 
+            :key="'nav-cat-' + cat.id" 
+            class="channel-item" 
+            :class="{ active: activeCategory === cat.id }"
+            @click="handleLevel1Click(cat.id)"
+          >
+            {{ cat.name }}
+          </li>
+          <li class="channel-item" @click="ElMessage.info('尊享VIP会员：全场自营专属特权，折上再享95折！')">VIP会员</li>
         </ul>
       </div>
     </nav>
@@ -492,36 +624,60 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- 商城快报与促销切换 -->
+        <!-- 商城快报与真实系统公告切换 -->
         <div class="emall-news-box">
           <div class="news-tab-header">
             <span class="tab-title" :class="{ active: newsTab === 'hot' }" @click="newsTab = 'hot'">最新快报</span>
             <span class="tab-title" :class="{ active: newsTab === 'promo' }" @click="newsTab = 'promo'">平台公告</span>
-            <span class="more-link" @click="scrollToProductSection()">更多 ❯</span>
+            <span class="more-link" @click="openAllNotices()">更多 ❯</span>
           </div>
           <ul class="news-list" v-if="newsTab === 'hot'">
-            <li><span class="tag-accent">HOT</span>【首发】iPhone 15 系列限时特惠直降上线</li>
-            <li><span class="tag-blue">速运</span>【配送】全国主要城市支持官方直发次日达</li>
-            <li><span class="tag-accent">特惠</span>【数码】极客周大牌显示器键盘立减 40元</li>
+            <template v-if="noticeList.length > 0">
+              <li 
+                v-for="notice in noticeList.slice(0, 3)" 
+                :key="'hot-n-' + notice.id" 
+                class="news-clickable-item"
+                @click="viewNotice(notice)"
+              >
+                <span class="tag-accent">HOT</span>
+                <span class="news-text-ellipsis">{{ notice.title }}</span>
+              </li>
+            </template>
+            <template v-else>
+              <li><span class="tag-accent">HOT</span>【首发】全系新品限时直降上线</li>
+              <li><span class="tag-blue">速运</span>【配送】全国主要城市支持官方自营次日达</li>
+              <li><span class="tag-accent">特惠</span>【数码】极客周大牌装备立减热卖中</li>
+            </template>
           </ul>
           <ul class="news-list" v-else>
-            <li><span class="tag-accent">福利</span>【神券】领券中心每日 10:00 限量抢 200元券</li>
-            <li><span class="tag-accent">秒杀</span>【狂欢】限时秒杀正品低价热卖中</li>
-            <li><span class="tag-blue">会员</span>【VIP】尊享会员折上折，购物赠 10倍 积分</li>
+            <template v-if="noticeList.length > 0">
+              <li 
+                v-for="notice in noticeList.slice(0, 3)" 
+                :key="'promo-n-' + notice.id" 
+                class="news-clickable-item"
+                @click="viewNotice(notice)"
+              >
+                <span class="tag-blue">公告</span>
+                <span class="news-text-ellipsis">{{ notice.title }}</span>
+              </li>
+            </template>
+            <template v-else>
+              <li><span class="tag-blue">通知</span>暂无系统公告发布</li>
+            </template>
           </ul>
         </div>
 
         <!-- 便民服务 6 宫格 -->
         <div class="emall-service-matrix">
-          <div class="service-cell" @click="ElMessage.info('充值中心正在为您连接服务...')">
+          <div class="service-cell" @click="openServiceGuide('phone')">
             <div class="service-icon">📱</div>
             <div class="service-text">话费充值</div>
           </div>
-          <div class="service-cell" @click="ElMessage.info('商旅预订通道已开启')">
+          <div class="service-cell" @click="openServiceGuide('travel')">
             <div class="service-icon">✈️</div>
             <div class="service-text">机票商旅</div>
           </div>
-          <div class="service-cell" @click="ElMessage.info('酒店住宿预订已准备就绪')">
+          <div class="service-cell" @click="openServiceGuide('hotel')">
             <div class="service-icon">🏨</div>
             <div class="service-text">酒店住宿</div>
           </div>
@@ -529,11 +685,11 @@ onUnmounted(() => {
             <div class="service-icon">🎁</div>
             <div class="service-text">礼品卡券</div>
           </div>
-          <div class="service-cell" @click="ElMessage.info('企业采购批量优惠对接中')">
+          <div class="service-cell" @click="openServiceGuide('b2b')">
             <div class="service-icon">🏢</div>
             <div class="service-text">企业采购</div>
           </div>
-          <div class="service-cell" @click="ElMessage.info('正品溯源系统已接入认证链')">
+          <div class="service-cell" @click="openServiceGuide('trace')">
             <div class="service-icon">🛡️</div>
             <div class="service-text">正品溯源</div>
           </div>
@@ -542,14 +698,14 @@ onUnmounted(() => {
     </div>
 
     <!-- 5. 限时秒杀专区 (Flash Sale Zone) -->
-    <div class="emall-container emall-seckill-section">
+    <div class="emall-container emall-seckill-section" v-if="seckillProducts.length > 0">
       <div class="seckill-header">
         <div class="seckill-title-box">
           <span class="seckill-logo-text">⚡ 限时秒杀</span>
           <span class="seckill-sub-title">FLASH DEALS · 超值特惠</span>
         </div>
         <div class="seckill-countdown-box">
-          <span class="countdown-lead">本场倒计时：</span>
+          <span class="countdown-lead">{{ countdownStatusText }}</span>
           <span class="time-block">{{ countdownHours }}</span>
           <span class="colon">:</span>
           <span class="time-block">{{ countdownMinutes }}</span>
@@ -567,20 +723,24 @@ onUnmounted(() => {
           >
             <div class="seckill-img-wrap">
               <img :src="item.picUrl" :alt="item.name" class="seckill-img" loading="lazy" />
-              <span class="seckill-badge">秒杀价</span>
+              <span class="seckill-badge">{{ isFlashSaleActive(item) ? '秒杀中' : (isFlashSaleUpcoming(item) ? '即将开抢' : '特惠价') }}</span>
             </div>
             <div class="seckill-info">
               <div class="seckill-name">{{ item.name }}</div>
               <div class="seckill-price-row">
                 <div class="price-now">
                   <span class="currency">¥</span>
-                  <span class="num">{{ isFlashSaleActive(item) ? item.promoPrice : (item.price * 0.9).toFixed(2) }}</span>
+                  <span class="num">{{ isFlashSaleActive(item) ? item.promoPrice : (item.promoPrice || item.price) }}</span>
                 </div>
-                <div class="price-origin">¥{{ item.price }}</div>
+                <div class="price-origin" v-if="isFlashSaleActive(item) || item.promoPrice">¥{{ item.price }}</div>
               </div>
               <div class="seckill-progress">
-                <div class="prog-bar"><div class="prog-fill" style="width: 78%"></div></div>
-                <span class="prog-text">已抢 78%</span>
+                <div class="prog-bar"><div class="prog-fill" :style="{ width: calculateProgress(item) + '%' }"></div></div>
+                <span class="prog-text">
+                  <template v-if="calculateProgress(item) > 0">已抢 {{ calculateProgress(item) }}%</template>
+                  <template v-else-if="item.promoStock">已抢 0% · 限量{{ item.promoStock }}件</template>
+                  <template v-else>已抢 0% · 热抢中</template>
+                </span>
               </div>
             </div>
           </div>
@@ -689,7 +849,7 @@ onUnmounted(() => {
           <div class="img-wrapper">
             <img v-if="product.picUrl" :src="product.picUrl" :alt="product.name" class="p-img" loading="lazy" />
             <div v-else class="no-p-img">暂无商品图</div>
-            <span class="tag-ziying" v-if="product.id % 2 === 1">官方自营</span>
+            <span class="tag-ziying">官方自营</span>
             <span class="tag-flash" v-if="isFlashSaleActive(product)">限时特惠</span>
           </div>
           <div class="p-info">
@@ -697,10 +857,10 @@ onUnmounted(() => {
               <span class="p-currency">¥</span>
               <span class="p-integer">{{ isFlashSaleActive(product) ? product.promoPrice : Math.floor(product.price) }}</span>
               <span class="p-decimal" v-if="!isFlashSaleActive(product)">.{{ (product.price % 1).toFixed(2).substring(2) }}</span>
-              <span class="p-orig" v-if="isFlashSaleActive(product)">¥{{ product.price }}</span>
+              <span class="p-orig" v-if="isFlashSaleActive(product) && product.promoPrice">¥{{ product.price }}</span>
             </div>
             <div class="p-title" :title="product.name">
-              <span class="title-tag-blue" v-if="product.id % 2 === 1">自营</span>
+              <span class="title-tag-blue">自营</span>
               {{ product.name }}
             </div>
             <div class="p-desc">{{ product.description }}</div>
@@ -709,7 +869,7 @@ onUnmounted(() => {
               <span class="badge-coupon" v-if="couponList.length > 0">满减券</span>
             </div>
             <div class="p-footer">
-              <span class="p-comment-count">{{ (product.sales * 3 + 120) }}+ 条评价</span>
+              <span class="p-comment-count">{{ product.sales > 0 ? (product.sales + '+ 人已买') : '官方优选' }}</span>
               <button class="add-cart-btn" @click.stop="handleQuickAdd(product)" title="加入购物车">
                 <el-icon><ShoppingCart /></el-icon>
               </button>
@@ -845,6 +1005,97 @@ onUnmounted(() => {
         <span class="tab-label">{{ userStore.userInfo ? '我的' : '登录' }}</span>
       </div>
     </nav>
+
+    <!-- 11. 城市切换对话框 (City Switcher Dialog) -->
+    <el-dialog v-model="cityDialogVisible" title="切换当前配送城市" width="460px" destroy-on-close class="emall-custom-dialog">
+      <div class="city-dialog-body">
+        <div class="current-city-tip">
+          当前定位城市：<span class="city-highlight">{{ currentCity }}</span>
+        </div>
+        <div class="city-section-title">热门城市推荐</div>
+        <div class="city-tags-grid">
+          <span 
+            v-for="city in hotCities" 
+            :key="city" 
+            class="city-chip" 
+            :class="{ active: currentCity === city }"
+            @click="selectCity(city)"
+          >
+            {{ city }}
+          </span>
+        </div>
+      </div>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="cityDialogVisible = false">取消</el-button>
+        </div>
+      </template>
+    </el-dialog>
+
+    <!-- 12. 系统公告详情对话框 (Notice Detail Dialog) -->
+    <el-dialog v-model="noticeDialogVisible" :title="currentNotice?.title || '系统公告详情'" width="560px" destroy-on-close class="emall-custom-dialog">
+      <div class="notice-detail-box" v-if="currentNotice">
+        <div class="notice-meta-bar">
+          <span class="notice-badge">平台官方</span>
+          <span class="notice-time">发布时间：{{ currentNotice.createTime ? currentNotice.createTime.replace('T', ' ').substring(0, 19) : '刚刚' }}</span>
+        </div>
+        <div class="notice-article-content">
+          {{ currentNotice.content }}
+        </div>
+      </div>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button type="primary" @click="noticeDialogVisible = false">我已了解</el-button>
+        </div>
+      </template>
+    </el-dialog>
+
+    <!-- 13. 全部公告列表对话框 (All Notices Dialog) -->
+    <el-dialog v-model="allNoticesDialogVisible" title="E-MALL 平台公告与帮助中心" width="650px" destroy-on-close class="emall-custom-dialog">
+      <div class="all-notices-container">
+        <div v-if="noticeList.length === 0" class="empty-notices">
+          暂无官方公告发布
+        </div>
+        <div 
+          v-for="n in noticeList" 
+          :key="'list-n-' + n.id" 
+          class="notice-list-card"
+          @click="viewNotice(n); allNoticesDialogVisible = false"
+        >
+          <div class="nl-header">
+            <span class="nl-title">{{ n.title }}</span>
+            <span class="nl-time">{{ n.createTime ? n.createTime.substring(0, 10) : '' }}</span>
+          </div>
+          <div class="nl-summary">{{ n.content }}</div>
+        </div>
+      </div>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="allNoticesDialogVisible = false">关闭</el-button>
+        </div>
+      </template>
+    </el-dialog>
+
+    <!-- 14. 便民服务与专属人工通道对话框 (Service Guide Dialog) -->
+    <el-dialog v-model="serviceDialogVisible" :title="serviceDialogTitle" width="520px" destroy-on-close class="emall-custom-dialog">
+      <div class="service-dialog-content">
+        <div class="service-intro-box">
+          <p class="service-p">{{ serviceDialogContent }}</p>
+        </div>
+        <div class="service-channel-box">
+          <div class="sc-title">如需进一步业务办理或人工协助：</div>
+          <div class="sc-action-row">
+            <el-button type="primary" class="sc-btn" @click="openCustomerService(); serviceDialogVisible = false">
+              <el-icon><Service /></el-icon>
+              <span>联系在线人工客服</span>
+            </el-button>
+            <el-button class="sc-plain-btn" @click="serviceDialogVisible = false">
+              我知道了
+            </el-button>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -2001,5 +2252,188 @@ onUnmounted(() => {
   .tab-icon {
     font-size: 20px;
   }
+}
+
+/* ================= 11. 新增功能弹窗与快报样式 ================= */
+.news-clickable-item {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform 0.2s, color 0.2s;
+}
+.news-clickable-item:hover {
+  color: #0284c7;
+  transform: translateX(3px);
+}
+.news-text-ellipsis {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 城市切换弹窗 */
+.city-dialog-body {
+  padding: 10px 0;
+}
+.current-city-tip {
+  font-size: 14px;
+  color: #475569;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed #e2e8f0;
+}
+.city-highlight {
+  color: #0284c7;
+  font-weight: bold;
+  font-size: 16px;
+}
+.city-section-title {
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+.city-tags-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.city-chip {
+  padding: 6px 16px;
+  border-radius: 20px;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+.city-chip:hover {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+.city-chip.active {
+  background: #0284c7;
+  color: #fff;
+  font-weight: bold;
+}
+
+/* 公告详情弹窗 */
+.notice-detail-box {
+  padding: 5px 0;
+}
+.notice-meta-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.notice-badge {
+  background: #e0f2fe;
+  color: #0284c7;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+.notice-time {
+  font-size: 12px;
+  color: #94a3b8;
+}
+.notice-article-content {
+  font-size: 14px;
+  line-height: 1.8;
+  color: #334155;
+  white-space: pre-wrap;
+}
+
+/* 公告列表弹窗 */
+.all-notices-container {
+  max-height: 400px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.empty-notices {
+  text-align: center;
+  padding: 30px 0;
+  color: #94a3b8;
+  font-size: 14px;
+}
+.notice-list-card {
+  padding: 14px 16px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.notice-list-card:hover {
+  border-color: #0284c7;
+  background: #f0f9ff;
+  transform: translateY(-1px);
+}
+.nl-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.nl-title {
+  font-weight: bold;
+  color: #0f172a;
+  font-size: 14px;
+}
+.nl-time {
+  font-size: 12px;
+  color: #94a3b8;
+}
+.nl-summary {
+  font-size: 13px;
+  color: #64748b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 便民服务弹窗 */
+.service-dialog-content {
+  padding: 5px 0;
+}
+.service-intro-box {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+.service-p {
+  margin: 0;
+  font-size: 14px;
+  color: #0369a1;
+  line-height: 1.7;
+}
+.service-channel-box {
+  border-top: 1px solid #f1f5f9;
+  padding-top: 15px;
+}
+.sc-title {
+  font-size: 13px;
+  color: #475569;
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+.sc-action-row {
+  display: flex;
+  gap: 12px;
+}
+.sc-btn {
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  border: none;
 }
 </style>

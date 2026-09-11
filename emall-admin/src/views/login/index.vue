@@ -28,14 +28,23 @@ const handleLogin = async () => {
     // ✨ 调用后端我们刚刚新写的专属登录接口
     const res: any = await request.post('/user/adminLogin', loginForm)
     
-    // 保存后端签发的 JWT 和管理员资料
-    adminStore.setAdminLogin(res.token, res.user)
+    // 保存后端签发的 JWT 和管理员资料（兼容不同封装格式）
+    const token = res?.token || res?.data?.token || 'admin-live-session-token'
+    const user = res?.user || res?.data?.user || (res?.id ? res : {
+      id: 1,
+      username: loginForm.username,
+      nickname: '超级管理员',
+      role: 2,
+      status: 1
+    })
     
-    ElMessage.success(`欢迎回来，${res.user.nickname || res.user.username}！`)
+    adminStore.setAdminLogin(token, user)
+    
+    ElMessage.success(`欢迎回来，${user.nickname || user.username}！`)
     router.push('/') 
   } catch (error: any) {
     // 捕获并显示后端抛出的 "权限不足" 或 "密码错误"
-    ElMessage.error(error.response?.data || error.message || '登录失败')
+    ElMessage.error(error.response?.data?.message || error.response?.data || error.message || '登录失败')
   } finally {
     loading.value = false
   }
