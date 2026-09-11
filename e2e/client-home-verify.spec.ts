@@ -1,7 +1,13 @@
 import { test, expect } from '@playwright/test'
 import path from 'path'
 
-const artifactDir = 'C:\\Users\\Zhou_bibi\\.gemini\\antigravity\\brain\\43f970a2-e0d6-4315-8270-11836c770365'
+import os from 'os'
+import fs from 'fs'
+
+const artifactDir = process.env.ARTIFACT_DIR || path.join(os.tmpdir(), 'emall-artifacts')
+if (!fs.existsSync(artifactDir)) {
+  fs.mkdirSync(artifactDir, { recursive: true })
+}
 
 test.describe('Client Homepage Verification', () => {
   test('Verify authentic homepage interactive features', async ({ page }) => {

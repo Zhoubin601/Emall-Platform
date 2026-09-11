@@ -257,15 +257,6 @@ public class OrderService {
         return true;
     }
 
-    private BigDecimal effectivePrice(Product product, Sku sku, LocalDateTime now) {
-        boolean promoActive = isPromoApplicable(product, sku, now);
-        BigDecimal price = promoActive ? product.getPromoPrice() : sku.getPrice();
-        if (price == null || price.signum() < 0) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "商品价格配置异常");
-        }
-        return price.setScale(2, RoundingMode.HALF_UP);
-    }
-
     private void restoreInventory(Long orderId) {
         List<OrderItem> items = itemMapper.selectList(new QueryWrapper<OrderItem>().eq("order_id", orderId));
         Set<Long> affectedProducts = new HashSet<>();

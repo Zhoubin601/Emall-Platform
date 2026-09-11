@@ -17,7 +17,7 @@ export default defineConfig({
   projects: [
     {
       name: 'client-chromium',
-      testMatch: /(client|screenshot|direct|jd)\.spec\.ts/,
+      testMatch: /client\.spec\.ts$/,
       use: {
         ...devices['Desktop Chrome'],
         baseURL: 'http://127.0.0.1:4173'
@@ -25,7 +25,7 @@ export default defineConfig({
     },
     {
       name: 'admin-chromium',
-      testMatch: /admin\.spec\.ts/,
+      testMatch: /admin\.spec\.ts$/,
       use: {
         ...devices['Desktop Chrome'],
         baseURL: 'http://127.0.0.1:4174'

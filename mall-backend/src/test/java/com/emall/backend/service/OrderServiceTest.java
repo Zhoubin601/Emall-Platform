@@ -36,6 +36,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -275,6 +276,163 @@ class OrderServiceTest {
         assertConflict(HttpStatus.CONFLICT, () -> service.deleteOrder(paid));
         verify(orderMapper, never()).deleteById(89L);
     }
+
+    @Test
+    void rejectsOrderWhenPromoStockIsInsufficient() {
+        CreationFixture fixture = prepareCreation(new BigDecimal("100.00"), 8);
+        fixture.product().setPromoPrice(new BigDecimal("50.00"));
+        fixture.product().setPromoStartTime(LocalDateTime.now().minusHours(1));
+        fixture.product().setPromoEndTime(LocalDateTime.now().plusHours(1));
+        fixture.product().setPromoStock(1); // 仅剩 1 件，但下单需要 2 件
+
+        assertConflict(HttpStatus.CONFLICT,
+                () -> service.createOrder(orderRequest(null), USER_ID, IDEMPOTENCY_KEY));
+    }
+
+    @Test
+    void orderDeductsPromoStockWhenRemainingIsPositive() {
+        CreationFixture fixture = prepareCreation(new BigDecimal("100.00"), 8);
+        fixture.product().setPromoPrice(new BigDecimal("50.00"));
+        fixture.product().setPromoStartTime(LocalDateTime.now().minusHours(1));
+        fixture.product().setPromoEndTime(LocalDateTime.now().plusHours(1));
+        fixture.product().setPromoStock(5); // 下单扣减 2 件后剩 3 件
+        fixture.product().setPromoSkuId(3L);
+
+        OrderService.CreatedOrder result = service.createOrder(
+                orderRequest(null), USER_ID, IDEMPOTENCY_KEY);
+
+        assertThat(result.totalAmount()).isEqualByComparingTo("110.00"); // 50*2 + 10 shipping
+        verify(productMapper).update(isNull(), any(Wrapper.class));
+    }
+
+    @Test
+    void orderExhaustsPromoStockAndClearsPromoWhenRemainingIsZero() {
+        CreationFixture fixture = prepareCreation(new BigDecimal("100.00"), 8);
+        fixture.product().setPromoPrice(new BigDecimal("50.00"));
+        fixture.product().setPromoStartTime(LocalDateTime.now().minusHours(1));
+        fixture.product().setPromoEndTime(LocalDateTime.now().plusHours(1));
+        fixture.product().setPromoStock(2); // 下单扣减 2 件后剩 0 件，自动触发清空
+        fixture.product().setPromoSkuId(3L);
+
+        OrderService.CreatedOrder result = service.createOrder(
+                orderRequest(null), USER_ID, IDEMPOTENCY_KEY);
+
+        assertThat(result.totalAmount()).isEqualByComparingTo("110.00");
+        verify(productMapper).update(isNull(), any(Wrapper.class));
+    }
+
+    @Test
+    void isPromoApplicableValidatesAllBranches() {
+        LocalDateTime now = LocalDateTime.now();
+        Sku sku = new Sku();
+        sku.setId(3L);
+
+        Product p = new Product();
+        assertThat(service.isPromoApplicable(p, sku, now)).isFalse();
+
+        p.setPromoPrice(new BigDecimal("50.00"));
+        assertThat(service.isPromoApplicable(p, sku, now)).isFalse();
+
+        p.setPromoStartTime(now.minusHours(2));
+        assertThat(service.isPromoApplicable(p, sku, now)).isFalse();
+
+        // 尚未开始
+        p.setPromoStartTime(now.plusHours(1));
+        p.setPromoEndTime(now.plusHours(2));
+        assertThat(service.isPromoApplicable(p, sku, now)).isFalse();
+
+        // 已经过期
+        p.setPromoStartTime(now.minusHours(2));
+        p.setPromoEndTime(now.minusHours(1));
+        assertThat(service.isPromoApplicable(p, sku, now)).isFalse();
+
+        // 正在进行中
+        p.setPromoStartTime(now.minusHours(1));
+        p.setPromoEndTime(now.plusHours(1));
+        assertThat(service.isPromoApplicable(p, sku, now)).isTrue();
+
+        // SKU 不匹配
+        p.setPromoSkuId(99L);
+        assertThat(service.isPromoApplicable(p, sku, now)).isFalse();
+
+        // SKU 匹配
+        p.setPromoSkuId(3L);
+        assertThat(service.isPromoApplicable(p, sku, now)).isTrue();
+
+        // 秒杀库存 <= 0
+        p.setPromoStock(0);
+        assertThat(service.isPromoApplicable(p, sku, now)).isFalse();
+        p.setPromoStock(-1);
+        assertThat(service.isPromoApplicable(p, sku, now)).isFalse();
+
+        // 秒杀库存 > 0
+        p.setPromoStock(10);
+        assertThat(service.isPromoApplicable(p, sku, now)).isTrue();
+    }
+
+    @Test
+    void rejectsOrderWhenPriceIsNegative() {
+        prepareCreation(new BigDecimal("-1.00"), 8);
+
+        assertConflict(HttpStatus.CONFLICT,
+                () -> service.createOrder(orderRequest(null), USER_ID, IDEMPOTENCY_KEY));
+    }
+
+    @Test
+    void rejectsOrderWhenSkuDoesNotExist() {
+        prepareRedis(null, true);
+        when(skuMapper.selectById(3L)).thenReturn(null);
+
+        assertConflict(HttpStatus.BAD_REQUEST,
+                () -> service.createOrder(orderRequest(null), USER_ID, IDEMPOTENCY_KEY));
+    }
+
+    @Test
+    void rejectsOrderWhenProductDoesNotExistOrIsOffShelf() {
+        prepareRedis(null, true);
+        Sku sku = new Sku();
+        sku.setId(3L);
+        sku.setProductId(9L);
+        when(skuMapper.selectById(3L)).thenReturn(sku);
+
+        // 商品为 null
+        when(productMapper.selectById(9L)).thenReturn(null);
+        assertConflict(HttpStatus.CONFLICT,
+                () -> service.createOrder(orderRequest(null), USER_ID, IDEMPOTENCY_KEY));
+
+        // 商品下架状态 status = 0
+        Product p = new Product();
+        p.setId(9L);
+        p.setStatus(0);
+        when(productMapper.selectById(9L)).thenReturn(p);
+        assertConflict(HttpStatus.CONFLICT,
+                () -> service.createOrder(orderRequest(null), USER_ID, IDEMPOTENCY_KEY));
+    }
+
+    @Test
+    void cancelExpiredOrdersProcessesPendingOrders() {
+        Order order = order(88L, USER_ID, OrderStatusPolicy.PENDING_PAYMENT);
+        when(orderMapper.selectList(any())).thenReturn(List.of(order));
+        when(orderMapper.updateStatusIfCurrent(88L, OrderStatusPolicy.PENDING_PAYMENT, OrderStatusPolicy.CANCELLED))
+                .thenReturn(1);
+        when(itemMapper.selectList(any())).thenReturn(List.of());
+
+        service.cancelExpiredOrders();
+
+        verify(orderMapper).updateStatusIfCurrent(88L, OrderStatusPolicy.PENDING_PAYMENT, OrderStatusPolicy.CANCELLED);
+    }
+
+    @Test
+    void cancelExpiredOrdersSwallowsExceptionsFromConcurrentStatusChange() {
+        Order order = order(88L, USER_ID, OrderStatusPolicy.PENDING_PAYMENT);
+        when(orderMapper.selectList(any())).thenReturn(List.of(order));
+        when(orderMapper.updateStatusIfCurrent(88L, OrderStatusPolicy.PENDING_PAYMENT, OrderStatusPolicy.CANCELLED))
+                .thenThrow(new RuntimeException("DB Lock"));
+
+        service.cancelExpiredOrders();
+        // Exception should be caught and ignored
+    }
+
 
     private CreationFixture prepareCreation(BigDecimal skuPrice, int stock) {
         prepareRedis(null, true);

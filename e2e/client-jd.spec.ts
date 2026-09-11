@@ -1,7 +1,13 @@
 import { test, expect } from '@playwright/test'
 import path from 'path'
 
-const artifactDir = 'C:\\Users\\a3185\\.gemini\\antigravity\\brain\\614bf3e9-fe6c-4b62-995e-a05ae0962c26'
+import os from 'os'
+import fs from 'fs'
+
+const artifactDir = process.env.ARTIFACT_DIR || path.join(os.tmpdir(), 'emall-artifacts')
+if (!fs.existsSync(artifactDir)) {
+  fs.mkdirSync(artifactDir, { recursive: true })
+}
 
 test('E-MALL Portal Layout & Pagination Verification', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 })

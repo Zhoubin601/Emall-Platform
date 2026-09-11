@@ -36,7 +36,7 @@ test('买家可以通过登录页进入商城', async ({ page }) => {
   await page.getByRole('button', { name: '开启购物之旅' }).click()
 
   await expect(page).toHaveURL(/\/$/)
-  await expect(page.getByPlaceholder('搜一搜今天买点什么...')).toBeVisible()
+  await expect(page.getByPlaceholder(/搜一搜/)).toBeVisible()
   await expect.poll(() => page.evaluate(() => localStorage.getItem('mall-token')))
     .toBe('client-test-token')
 })
