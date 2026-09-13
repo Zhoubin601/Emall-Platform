@@ -134,7 +134,7 @@ onUnmounted(() => {
     <header class="auth-topbar">
       <div class="topbar-container">
         <router-link to="/" class="topbar-brand">
-          <span class="brand-text">E-MALL</span>
+          <h1 class="brand-text">E-MALL</h1>
           <span class="brand-dot"></span>
           <span class="brand-sub">官方臻选商城</span>
         </router-link>
@@ -243,7 +243,7 @@ onUnmounted(() => {
                 <label class="input-label">账号 / 用户名</label>
                 <el-input
                   v-model="loginForm.username"
-                  placeholder="请输入您的登录账号"
+                  placeholder="请输入登录账号"
                   :prefix-icon="User"
                   size="large"
                   class="premium-input"
@@ -258,7 +258,7 @@ onUnmounted(() => {
                 <el-input
                   v-model="loginForm.password"
                   type="password"
-                  placeholder="请输入您的账户密码"
+                  placeholder="请输入登录密码"
                   :prefix-icon="Lock"
                   size="large"
                   show-password
@@ -280,7 +280,7 @@ onUnmounted(() => {
                 :loading="loading"
                 @click="handleLogin"
               >
-                立即登录 开启选购
+                开启购物之旅
               </el-button>
 
               <div class="terms-notice mt-4">
@@ -522,6 +522,8 @@ onUnmounted(() => {
   text-decoration: none;
 }
 .topbar-brand .brand-text {
+  margin: 0;
+  line-height: 1;
   font-size: 20px;
   font-weight: 900;
   letter-spacing: 1px;

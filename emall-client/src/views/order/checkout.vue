@@ -449,13 +449,13 @@ onMounted(async () => {
             </div>
 
             <el-button 
-              type="danger" 
+              type="primary" 
               size="large" 
               class="place-order-btn" 
               :loading="isSubmitting"
               @click="handlePlaceOrder"
             >
-              提交订单并付款
+              提交订单
             </el-button>
 
             <div class="summary-trust-tips">
@@ -469,7 +469,7 @@ onMounted(async () => {
     <!-- 支付弹窗 -->
     <el-dialog 
       v-model="showPayDialog" 
-      :title="`收银台 · ${payMethod === 'alipay' ? '支付宝' : '微信'}支付`" 
+      title="E-MALL 专属收银台" 
       width="440px" 
       :close-on-click-modal="false" 
       :show-close="false" 
@@ -482,6 +482,11 @@ onMounted(async () => {
           <span class="pa-curr">¥</span>
           <span class="pa-num">{{ (serverTotalAmount ?? finalAmount).toFixed(2) }}</span>
         </div>
+
+        <el-radio-group v-model="payMethod" class="pay-method-group">
+          <el-radio value="alipay" size="large" border><span style="color:#0284c7; font-weight:bold;">支付宝支付</span></el-radio>
+          <el-radio value="wechat" size="large" border><span style="color:#10b981; font-weight:bold;">微信支付</span></el-radio>
+        </el-radio-group>
 
         <div class="qr-box">
           <img :src="payMethod === 'alipay' ? alipayQr : wechatQr" class="qr-img" />
@@ -1086,6 +1091,13 @@ onMounted(async () => {
   font-size: 32px;
   font-weight: 900;
   color: #f43f5e;
+}
+
+.pay-method-group {
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
 }
 
 .qr-box {

@@ -206,9 +206,9 @@ onMounted(() => {
             <p class="fb-desc">我们非常重视您的每条声音，采纳后可获赠 VIP 尊享优惠券！</p>
 
             <el-radio-group v-model="fbForm.type" size="small" class="fb-type-radio">
-              <el-radio-button label="功能建议" />
-              <el-radio-button label="体验优化" />
-              <el-radio-button label="商品需求" />
+              <el-radio-button value="功能建议">功能建议</el-radio-button>
+              <el-radio-button value="体验优化">体验优化</el-radio-button>
+              <el-radio-button value="商品需求">商品需求</el-radio-button>
             </el-radio-group>
 
             <el-input
