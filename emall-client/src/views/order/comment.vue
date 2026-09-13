@@ -2,18 +2,23 @@
 import { reactive, ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, type UploadUserFile } from 'element-plus'
-import { Plus, Back, Goods, Ticket } from '@element-plus/icons-vue'
+import { Plus, Picture, Goods, Medal } from '@element-plus/icons-vue'
 import request from '../../utils/request'
 import { useUserStore } from '../../stores/user'
+import ClientHeader from '../../components/ClientHeader.vue'
+import ClientFooter from '../../components/ClientFooter.vue'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
 const productName = ref('加载中...')
+const productPic = ref('')
 const orderSn = ref('加载中...')
 const isEdit = ref(false)
 const commentId = route.query.commentId 
+
+const isAnonymous = ref(false)
 
 const form = reactive({
   id: null as number | null,
@@ -23,13 +28,33 @@ const form = reactive({
   content: ''
 })
 
-// ✨ 绝杀方案核心 1：用 Element Plus 的双向绑定直接接管文件列表
+const quickTags = [
+  '顺丰神速', '包装精美', '做工精良', '性价比高', '自营正品', '颜值极高'
+]
+
+const addQuickTag = (tag: string) => {
+  if (form.content.includes(tag)) return
+  form.content = form.content ? `${form.content}，${tag}` : tag
+}
+
+const ratingMoodText = computed(() => {
+  const map: Record<number, string> = {
+    1: '非常不满意，有待改进',
+    2: '不满意，体验一般',
+    3: '基本满意，符合预期',
+    4: '满意，品质很不错',
+    5: '非常满意，物超所值，强烈推荐！'
+  }
+  return map[form.star] || '请进行满意度打分'
+})
+
+// Element Plus 文件上传绑定
 const fileList = ref<UploadUserFile[]>([])
 
 const uploadData = computed(() => {
   return {
-    nickname: userStore.userInfo?.username || '未知账号', 
-    productName: productName.value === '加载中...' ? '评价商品' : productName.value
+    nickname: userStore.userInfo?.username || '买家', 
+    productName: productName.value === '加载中...' ? '商品' : productName.value
   }
 })
 
@@ -38,170 +63,418 @@ const uploadHeaders = computed(() => {
   return token ? { Authorization: `Bearer ${token}` } : {}
 })
 
-// 安全回显函数：确保中文和空格能正确显示
 const getSafeUrl = (rawUrl: string) => {
-  if (!rawUrl) return ''
-  return rawUrl
+  return rawUrl || ''
 }
 
 onMounted(async () => {
   if (commentId) {
     isEdit.value = true
     try {
-      const oldData = await request.get<any, any>(`/comment/detail/${commentId}`)
+      const oldData: any = await request.get(`/comment/detail/${commentId}`)
       form.id = oldData.id
       form.star = oldData.star
       form.content = oldData.content
       form.productId = oldData.productId
       form.orderId = oldData.orderId
       
-      // ✨ 绝杀方案核心 2：如果是修改评价，将数据库的图片装载进双向绑定列表
       if (oldData.pics) {
-        fileList.value = oldData.pics.split(',').map((url: string) => ({
-          name: '已上传图片',
+        fileList.value = oldData.pics.split(',').filter(Boolean).map((url: string) => ({
+          name: '已上传买家秀',
           url: getSafeUrl(url), 
-          rawUrl: url // 悄悄把真实的数据库原始路径存起来
+          rawUrl: url
         }))
       }
-    } catch (e) { ElMessage.error('原评价加载失败') }
+    } catch (e) { ElMessage.error('原评价信息加载失败') }
   }
 
   if (form.productId) {
     request.get<any, any>(`/product/detail/${form.productId}`).then(res => {
       productName.value = res.name
-    }).catch(() => productName.value = '未知商品')
+      productPic.value = res.picUrl
+    }).catch(() => productName.value = '自营严选商品')
   }
 
   if (form.orderId) {
     request.get<any, any>(`/order/detail/${form.orderId}`).then(res => {
       orderSn.value = res.orderSn
-    }).catch(() => orderSn.value = '未知单号')
+    }).catch(() => orderSn.value = 'EMALL订单')
   }
 })
 
-// ✨ 绝杀方案核心 3：提交时现场榨取 URL
+const isSubmitting = ref(false)
+
 const submitComment = async () => {
-  if (!form.content.trim()) return ElMessage.warning('请填写心得')
+  if (!form.content.trim()) return ElMessage.warning('请填写至少一句您的真实使用心得哦')
   
-  // 遍历当前的真实图片列表
+  isSubmitting.value = true
+
   const finalPics = fileList.value.map(file => {
-    // A. 如果是刚刚新上传的图片，底层对象里会有 response
     if (file.response) {
       const res = file.response as any
-      // 暴力提取：无论后端包了多少层，都能拿出来
       let extractedUrl = res.url || res.data?.url || res.data || res
-      if (typeof extractedUrl === 'string') extractedUrl = extractedUrl.replace(/"/g, '') // 防御性清理多余引号
+      if (typeof extractedUrl === 'string') extractedUrl = extractedUrl.replace(/"/g, '')
       return extractedUrl
     }
-    // B. 如果是之前已经上传过的图片（修改评价模式），直接交出刚才存好的原始路径
     return (file as any).rawUrl || file.url
-  }).filter(url => url && typeof url === 'string') // 过滤掉一切异常空值
+  }).filter(url => url && typeof url === 'string')
 
   const submitData = {
-    ...form,
-    userId: userStore.userInfo.id,
-    nickname: userStore.userInfo.username,
-    avatar: userStore.userInfo.avatar,
-    // 只要有链接，一定能转成字符串传给后端！
-    pics: finalPics.length > 0 ? finalPics.join(',') : null
+    id: form.id,
+    userId: userStore.userInfo?.id,
+    productId: Number(form.productId),
+    orderId: Number(form.orderId),
+    star: form.star,
+    content: form.content,
+    pics: finalPics.join(',')
   }
-  
+
   try {
-    const apiUrl = isEdit.value ? '/comment/update' : '/comment/add'
-    await request.post(apiUrl, submitData)
-    
-    ElMessage.success(isEdit.value ? '修改成功！' : '发布成功！')
-    router.push(isEdit.value ? '/comments' : '/orders')
-  } catch (error) {
+    if (isEdit.value) {
+      await request.put('/comment/update', submitData)
+      ElMessage.success('🎉 评价已成功修改！')
+    } else {
+      await request.post('/comment/add', submitData)
+      ElMessage.success('🎉 评价发表成功！感谢您对 E-MALL 的支持')
+    }
+    router.push('/orders')
+  } catch (e) {
     ElMessage.error('提交失败，请检查网络')
+  } finally {
+    isSubmitting.value = false
   }
 }
 </script>
 
 <template>
-  <div class="comment-post-page">
-    <header class="glass-header">
-      <div class="header-content">
-        <el-button link :icon="Back" @click="router.back()">返回</el-button>
-        <span class="title">{{ isEdit ? '修改评价' : '发表评价' }}</span>
+  <div class="comment-page-layout">
+    <ClientHeader />
+
+    <main class="comment-container">
+      <!-- 面包屑导航 -->
+      <nav class="breadcrumb-bar">
+        <span class="crumb-link" @click="router.push('/')">首页</span>
+        <span class="crumb-sep">/</span>
+        <span class="crumb-link" @click="router.push('/orders')">我的订单</span>
+        <span class="crumb-sep">/</span>
+        <span class="crumb-current">{{ isEdit ? '修改评价' : '发表评价晒单' }}</span>
+      </nav>
+
+      <div class="comment-main-card">
+        <!-- 左栏：商品信息摘要 -->
+        <div class="product-summary-col">
+          <div class="product-cover-box">
+            <img v-if="productPic" :src="productPic" class="prod-img" />
+            <div v-else class="no-img"><el-icon :size="48"><Goods /></el-icon></div>
+          </div>
+          <h3 class="prod-title">{{ productName }}</h3>
+          <div class="order-info-tag">
+            <span>关联单号：{{ orderSn }}</span>
+          </div>
+          <div class="trust-badge-line">
+            <el-icon color="#0ea5e9"><Medal /></el-icon>
+            <span>真实买家订单 认证评价</span>
+          </div>
+        </div>
+
+        <!-- 右栏：评价主表单 -->
+        <div class="comment-form-col">
+          <div class="form-section-title">
+            <span>商品综合评分</span>
+          </div>
+
+          <!-- 星级打分与情绪反馈 -->
+          <div class="rating-bar">
+            <el-rate v-model="form.star" size="large" allow-half={false} />
+            <span class="mood-text">{{ ratingMoodText }}</span>
+          </div>
+
+          <!-- 快速标签 -->
+          <div class="quick-tags-box">
+            <span class="tags-lead">快速评价：</span>
+            <span 
+              v-for="tag in quickTags" 
+              :key="tag" 
+              class="quick-tag-chip"
+              @click="addQuickTag(tag)"
+            >
+              + {{ tag }}
+            </span>
+          </div>
+
+          <!-- 心得文本输入 -->
+          <div class="textarea-box">
+            <el-input
+              v-model="form.content"
+              type="textarea"
+              :rows="5"
+              maxlength="500"
+              show-word-limit
+              placeholder="宝贝满足您的期待吗？说说它的做工、材质、使用感受等，分享给其他挑剔的小伙伴吧~"
+              class="custom-textarea"
+            />
+          </div>
+
+          <!-- 买家秀图片上传 -->
+          <div class="upload-section">
+            <div class="upload-title">
+              <el-icon><Picture /></el-icon>
+              <span>买家秀晒图 (最多上传 5 张实拍图)</span>
+            </div>
+
+            <el-upload
+              v-model:file-list="fileList"
+              action="/api/file/upload"
+              list-type="picture-card"
+              :headers="uploadHeaders"
+              :data="uploadData"
+              :limit="5"
+              accept="image/*"
+              class="cute-uploader"
+            >
+              <el-icon><Plus /></el-icon>
+            </el-upload>
+          </div>
+
+          <!-- 底部提交栏 -->
+          <div class="submit-action-bar">
+            <el-checkbox v-model="isAnonymous" label="匿名评价 (隐藏您的真实用户名)" />
+            <el-button 
+              type="primary" 
+              size="large" 
+              class="btn-submit"
+              :loading="isSubmitting"
+              @click="submitComment"
+            >
+              {{ isEdit ? '确认修改评价' : '立即发布评价晒单' }}
+            </el-button>
+          </div>
+        </div>
       </div>
-    </header>
-
-    <main class="container">
-      <el-card class="comment-card glass-card">
-        <div class="info-banner">
-          <div class="info-row">
-            <el-icon><Goods /></el-icon>
-            <span class="label">评价商品：</span>
-            <span class="value highlight">{{ productName }}</span>
-          </div>
-          <div class="info-row">
-            <el-icon><Ticket /></el-icon>
-            <span class="label">订单编号：</span>
-            <span class="value">{{ orderSn }}</span>
-          </div>
-        </div>
-
-        <div class="section">
-          <p class="section-label">满意度评分</p>
-          <el-rate v-model="form.star" size="large" show-text />
-        </div>
-
-        <div class="section">
-          <p class="section-label">分享心得</p>
-          <el-input
-            v-model="form.content"
-            type="textarea"
-            :rows="5"
-            placeholder="宝贝好用吗？快来写下你的真实感受吧..."
-            maxlength="200"
-            show-word-limit
-            class="cute-textarea"
-          />
-        </div>
-
-        <div class="section">
-          <p class="section-label">晒图分享</p>
-          <el-upload
-            v-model:file-list="fileList"
-            action="/api/file/upload" 
-            :headers="uploadHeaders"
-            list-type="picture-card"
-            :data="uploadData"
-            :limit="3"
-            class="cute-upload"
-          >
-            <el-icon><Plus /></el-icon>
-          </el-upload>
-        </div>
-
-        <div class="footer">
-          <el-button type="primary" class="submit-btn" round @click="submitComment">
-            {{ isEdit ? '确认修改' : '发布评价' }}
-          </el-button>
-        </div>
-      </el-card>
     </main>
+
+    <ClientFooter />
   </div>
 </template>
 
 <style scoped>
-.comment-post-page { min-height: 100vh; background: #f0f9ff; padding-top: 80px; }
-.glass-header { position: fixed; top: 0; width: 100%; height: 60px; background: rgba(255,255,255,0.7); backdrop-filter: blur(10px); z-index: 100; display: flex; justify-content: center; border-bottom: 1px solid #e0f2fe; }
-.header-content { width: 800px; display: flex; align-items: center; padding: 0 20px; }
-.title { margin-left: 20px; font-weight: bold; color: #0369a1; }
-.container { width: 800px; max-width: 95%; margin: 0 auto; }
-.glass-card { border-radius: 24px; border: none; background: rgba(255, 255, 255, 0.85); box-shadow: 0 12px 40px rgba(186, 230, 253, 0.4); padding: 20px; }
-.info-banner { background: rgba(224, 242, 254, 0.5); padding: 20px; border-radius: 18px; margin-bottom: 30px; border: 1px solid rgba(186, 230, 253, 0.5); }
-.info-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; color: #475569; font-size: 14px; }
-.info-row:last-child { margin-bottom: 0; }
-.label { font-weight: bold; color: #64748b; }
-.value { color: #1e293b; }
-.value.highlight { color: #0369a1; font-weight: 800; }
-.section { margin-bottom: 25px; }
-.section-label { font-size: 15px; font-weight: bold; color: #334155; margin-bottom: 12px; }
-:deep(.cute-textarea .el-textarea__inner) { border-radius: 16px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; }
-:deep(.cute-upload .el-upload--picture-card) { background: #f1f5f9; border-radius: 16px; border: 2px dashed #cbd5e1; }
-.footer { text-align: center; margin-top: 30px; }
-.submit-btn { width: 260px; height: 48px; font-weight: bold; background: linear-gradient(135deg, #0ea5e9, #0284c7); border: none; box-shadow: 0 8px 20px rgba(14, 165, 233, 0.3); }
+.comment-page-layout {
+  min-height: 100vh;
+  background-color: #f8fafc;
+  display: flex;
+  flex-direction: column;
+}
+
+.comment-container {
+  width: 1220px;
+  max-width: 96%;
+  margin: 0 auto;
+  padding: 24px 0 60px;
+  flex: 1;
+}
+
+/* 面包屑 */
+.breadcrumb-bar {
+  padding: 0 0 16px;
+  font-size: 13px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.crumb-link {
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.crumb-link:hover {
+  color: #0284c7;
+}
+
+.crumb-sep {
+  color: #cbd5e1;
+}
+
+.crumb-current {
+  color: #0f172a;
+  font-weight: bold;
+}
+
+/* 主卡片 */
+.comment-main-card {
+  background: #ffffff;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  overflow: hidden;
+}
+
+/* 左侧商品卡 */
+.product-summary-col {
+  background-color: #fcfdfe;
+  border-right: 1px solid #f1f5f9;
+  padding: 36px 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.product-cover-box {
+  width: 180px;
+  height: 180px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  margin-bottom: 20px;
+}
+
+.prod-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.no-img {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #cbd5e1;
+}
+
+.prod-title {
+  margin: 0 0 12px;
+  font-size: 16px;
+  color: #0f172a;
+  line-height: 1.5;
+}
+
+.order-info-tag {
+  font-size: 12px;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 4px 12px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+.trust-badge-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #0ea5e9;
+}
+
+/* 右侧表单 */
+.comment-form-col {
+  padding: 36px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-section-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: #0f172a;
+}
+
+.rating-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.mood-text {
+  font-size: 14px;
+  font-weight: bold;
+  color: #f43f5e;
+}
+
+/* 快速标签 */
+.quick-tags-box {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tags-lead {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.quick-tag-chip {
+  font-size: 12px;
+  color: #475569;
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  padding: 4px 12px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.quick-tag-chip:hover {
+  background-color: #ffe4e6;
+  border-color: #f43f5e;
+  color: #e11d48;
+}
+
+.custom-textarea :deep(.el-textarea__inner) {
+  border-radius: 12px;
+  padding: 14px;
+  font-size: 14px;
+  border-color: #cbd5e1;
+}
+
+.custom-textarea :deep(.el-textarea__inner:focus) {
+  border-color: #0284c7;
+}
+
+/* 上传 */
+.upload-section {
+  margin-top: 6px;
+}
+
+.upload-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: bold;
+  color: #334155;
+  margin-bottom: 12px;
+}
+
+.submit-action-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  padding-top: 20px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.btn-submit {
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  border: none;
+  font-weight: bold;
+  padding: 0 36px;
+  border-radius: 20px;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.3);
+  transition: all 0.2s;
+}
+
+.btn-submit:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(2, 132, 199, 0.4);
+}
 </style>

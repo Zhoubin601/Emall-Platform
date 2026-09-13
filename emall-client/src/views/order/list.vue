@@ -1,10 +1,15 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Calendar, Back, ShoppingBag, ChatDotRound, Delete, Box, Select, Wallet, Van } from '@element-plus/icons-vue'
+import { 
+  Calendar, ShoppingBag, Delete, Van, 
+  Wallet, DocumentCopy, ChatLineSquare
+} from '@element-plus/icons-vue'
 import request from '../../utils/request'
 import { useUserStore } from '../../stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import ClientHeader from '../../components/ClientHeader.vue'
+import ClientFooter from '../../components/ClientFooter.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -13,19 +18,17 @@ const loading = ref(false)
 
 const activeTab = ref('all')
 
-// === 获取数据 ===
 const fetchMyOrders = async () => {
   if (!userStore.userInfo) return router.push('/login')
   loading.value = true
   try {
     const res = await request.get('/order/my', { params: { userId: userStore.userInfo.id } })
-    orders.value = res
+    orders.value = res || []
   } finally {
     loading.value = false
   }
 }
 
-// ✨ 核心升级 1：过滤逻辑支持特殊的“退款/售后”分组
 const filteredOrders = computed(() => {
   if (activeTab.value === 'all') return orders.value
   if (activeTab.value === 'refund') {
@@ -34,10 +37,9 @@ const filteredOrders = computed(() => {
   return orders.value.filter(order => order.status === Number(activeTab.value))
 })
 
-// ✨ 核心升级 2：状态转换字典补齐 5 和 6
 const getStatusText = (status: number) => {
   const map: Record<number, string> = { 
-    0: '待支付', 1: '待发货', 2: '待收货', 3: '交易完成', 4: '已取消', 5: '已退款', 6: '退款审核中' 
+    0: '待付款', 1: '待发货', 2: '已发货 (待收货)', 3: '交易完成', 4: '已取消', 5: '已退款', 6: '退款审核中' 
   }
   return map[status] || '未知状态'
 }
@@ -57,11 +59,15 @@ const getStepActive = (status: number) => {
   return 0
 }
 
-// === 订单操作逻辑 ===
+const copyOrderSn = (sn: string) => {
+  navigator.clipboard.writeText(sn)
+  ElMessage.success('订单编号已复制到剪贴板！')
+}
 
+// 订单操作
 const handleCancel = (order: any) => {
-  ElMessageBox.confirm('真的要取消这笔订单吗？', '提示', {
-    confirmButtonText: '残忍取消',
+  ElMessageBox.confirm('确定要取消这笔订单吗？取消后库存将自动解冻回补。', '取消订单确认', {
+    confirmButtonText: '确定取消',
     cancelButtonText: '再想想',
     type: 'warning'
   }).then(async () => {
@@ -73,32 +79,34 @@ const handleCancel = (order: any) => {
 
 const handlePay = async (order: any) => {
   await request.put(`/order/status/${order.id}/1`)
-  ElMessage.success('支付成功，商家将尽快发货！')
+  ElMessage.success('支付成功，顺丰仓配将以最快时效安排发货！')
   fetchMyOrders()
 }
 
-// ✨ 核心升级 3：退款申请真正接入审批流
 const handleRefund = (order: any) => {
-  ElMessageBox.confirm('确定要申请退款吗？提交后将由商家进行审核，审核通过后资金将原路返回。', '退款申请', {
+  ElMessageBox.confirm('确定要申请退款吗？提交后将由运营客服进行审核，审核通过后资金将原路返回。', '退款申请', {
     confirmButtonText: '提交申请',
     cancelButtonText: '暂不退款',
     type: 'warning'
   }).then(async () => {
-    // 将状态从粗暴的 4 改为 6，进入退款冻结状态
     await request.put(`/order/status/${order.id}/6`)
-    ElMessage.success('退款申请已提交，请耐心等待商家审核')
+    ElMessage.success('退款申请已提交，请耐心等待审核')
     fetchMyOrders()
   }).catch(() => {})
 }
 
+const handleRemindDelivery = () => {
+  ElMessage.success('已为您催促仓库优先分拣，顺丰快递将以最快速度揽收发运！')
+}
+
 const handleConfirmReceipt = (order: any) => {
-  ElMessageBox.confirm('确认已经收到宝贝了吗？', '提示', {
+  ElMessageBox.confirm('确认已经收到包裹并检查无误了吗？确认后款项将结算给商家。', '确认收货', {
     confirmButtonText: '确认收货',
     cancelButtonText: '取消',
     type: 'success'
   }).then(async () => {
     await request.put(`/order/status/${order.id}/3`)
-    ElMessage.success('交易完成！快去评价吧~')
+    ElMessage.success('交易完成！快去给心仪宝贝写个好评晒单吧~')
     fetchMyOrders()
   })
 }
@@ -110,7 +118,7 @@ const goToComment = (order: any) => {
 }
 
 const handleDelete = (order: any) => {
-  ElMessageBox.confirm('确定要永久删除这条订单记录吗？', '警告', {
+  ElMessageBox.confirm('确定要彻底删除这条订单记录吗？删除后将不可恢复。', '删除记录警告', {
     confirmButtonText: '确定删除',
     cancelButtonText: '取消',
     type: 'error'
@@ -125,16 +133,16 @@ const handleDelete = (order: any) => {
   }).catch(() => {})
 }
 
-// === 物流查看逻辑 ===
+// 物流查看
 const logisticsDialogVisible = ref(false)
 const currentLogisticsSn = ref('')
 
 const mockLogisticsData = ref([
-  { content: '派件中，快递员已出发。联系电话：138-0000-8888', timestamp: '今天 09:30', color: '#0ea5e9' },
-  { content: '已到达【您所在城市分拨中心】，准备发往营业部', timestamp: '昨天 23:15' },
-  { content: '已从【发货地转运中心】发出，正发往目的地', timestamp: '昨天 16:45' },
-  { content: '您的包裹已由物流公司揽收', timestamp: '昨天 14:20' },
-  { content: '商家已发货，等待快递揽收', timestamp: '昨天 13:00' }
+  { content: '【顺丰速运】派件中，快递员已出发。联系电话：95338', timestamp: '今天 09:30', color: '#0ea5e9' },
+  { content: '到达【您所在城市分拨中心】，准备发往就近网点', timestamp: '昨天 23:15' },
+  { content: '快件离开【北京顺义转运中心】，发往目的地', timestamp: '昨天 16:45' },
+  { content: '顺丰速运 已在 E-MALL 官方旗舰仓完成揽收', timestamp: '昨天 14:20' },
+  { content: '商品出库打包完成，等待快递交接', timestamp: '昨天 13:00' }
 ])
 
 const handleViewLogistics = (order: any) => {
@@ -146,190 +154,574 @@ onMounted(() => fetchMyOrders())
 </script>
 
 <template>
-  <div class="order-page">
-    <header class="glass-header">
-      <div class="header-content">
-        <el-button link :icon="Back" @click="router.push('/')" class="back-btn">返回</el-button>
-        <span class="title">我的订单</span>
+  <div class="orders-page-layout">
+    <ClientHeader />
+
+    <main class="orders-container">
+      <!-- 面包屑导航 -->
+      <nav class="breadcrumb-bar">
+        <span class="crumb-link" @click="router.push('/')">首页</span>
+        <span class="crumb-sep">/</span>
+        <span class="crumb-link" @click="router.push('/profile')">个人中心</span>
+        <span class="crumb-sep">/</span>
+        <span class="crumb-current">我的订单</span>
+      </nav>
+
+      <!-- 状态筛选 Tab 栏 -->
+      <div class="tabs-filter-card">
+        <div 
+          class="tab-pill"
+          :class="{ active: activeTab === 'all' }"
+          @click="activeTab = 'all'"
+        >
+          全部订单 <span class="badge" v-if="orders.length > 0">{{ orders.length }}</span>
+        </div>
+        <div 
+          class="tab-pill"
+          :class="{ active: activeTab === '0' }"
+          @click="activeTab = '0'"
+        >
+          待付款 <span class="badge red" v-if="orders.filter(o => o.status === 0).length > 0">{{ orders.filter(o => o.status === 0).length }}</span>
+        </div>
+        <div 
+          class="tab-pill"
+          :class="{ active: activeTab === '1' }"
+          @click="activeTab = '1'"
+        >
+          待发货 <span class="badge blue" v-if="orders.filter(o => o.status === 1).length > 0">{{ orders.filter(o => o.status === 1).length }}</span>
+        </div>
+        <div 
+          class="tab-pill"
+          :class="{ active: activeTab === '2' }"
+          @click="activeTab = '2'"
+        >
+          待收货 <span class="badge blue" v-if="orders.filter(o => o.status === 2).length > 0">{{ orders.filter(o => o.status === 2).length }}</span>
+        </div>
+        <div 
+          class="tab-pill"
+          :class="{ active: activeTab === '3' }"
+          @click="activeTab = '3'"
+        >
+          已完成
+        </div>
+        <div 
+          class="tab-pill"
+          :class="{ active: activeTab === 'refund' }"
+          @click="activeTab = 'refund'"
+        >
+          退款 / 售后 <span class="badge red" v-if="orders.filter(o => o.status === 5 || o.status === 6).length > 0">{{ orders.filter(o => o.status === 5 || o.status === 6).length }}</span>
+        </div>
       </div>
-    </header>
 
-    <main class="container">
-      <el-card class="glass-card tabs-card" shadow="never">
-        <el-tabs v-model="activeTab" class="custom-tabs">
-          <el-tab-pane label="全部" name="all"></el-tab-pane>
-          <el-tab-pane label="待支付" name="0"></el-tab-pane>
-          <el-tab-pane label="待发货" name="1"></el-tab-pane>
-          <el-tab-pane label="待收货" name="2"></el-tab-pane>
-          <el-tab-pane label="已完成" name="3"></el-tab-pane>
-          <el-tab-pane label="退款/售后" name="refund"></el-tab-pane>
-        </el-tabs>
-      </el-card>
-
-      <div v-loading="loading">
-        <div v-if="filteredOrders.length === 0 && !loading" class="empty-box">
-          <el-icon size="64" color="#bae6fd"><ShoppingBag /></el-icon>
-          <p>当前状态下没有订单记录哦</p>
+      <!-- 订单列表 -->
+      <div v-loading="loading" class="order-list-box">
+        <!-- 空状态 -->
+        <div v-if="filteredOrders.length === 0 && !loading" class="empty-orders-view">
+          <div class="empty-icon-circle">
+            <el-icon :size="64" color="#cbd5e1"><ShoppingBag /></el-icon>
+          </div>
+          <h3>暂无相关订单记录</h3>
+          <p>当前筛选状态下没有找到任何订单，去发现更多严选好物吧~</p>
+          <el-button type="primary" round class="go-shop-btn" @click="router.push('/')">
+            去商城逛逛
+          </el-button>
         </div>
 
-        <el-card v-for="order in filteredOrders" :key="order.id" class="order-card glass-card">
-          <div class="order-header">
-            <span class="sn">订单编号：{{ order.orderSn }}</span>
-            <el-tag :type="getStatusTagType(order.status)" round effect="light">
-              {{ getStatusText(order.status) }}
-            </el-tag>
+        <!-- 订单卡片列表 -->
+        <div v-for="order in filteredOrders" :key="order.id" class="order-box-card">
+          <!-- 卡片头部 -->
+          <div class="card-header-bar">
+            <div class="header-left">
+              <span class="order-time"><el-icon><Calendar /></el-icon> {{ order.createTime }}</span>
+              <span class="order-sn">
+                订单号：<strong>{{ order.orderSn }}</strong>
+                <el-icon class="copy-btn" @click="copyOrderSn(order.orderSn)" title="复制单号"><DocumentCopy /></el-icon>
+              </span>
+              <span class="vendor-tag">E-MALL 官方自营旗舰</span>
+            </div>
+            <div class="header-right">
+              <el-tag :type="getStatusTagType(order.status)" effect="dark" class="status-pill">
+                {{ getStatusText(order.status) }}
+              </el-tag>
+            </div>
           </div>
-          
-          <div class="order-step-bar" v-if="order.status <= 3">
+
+          <!-- 进度步骤指示条 (正常流转订单显示) -->
+          <div class="order-timeline-steps" v-if="order.status <= 3">
             <el-steps :active="getStepActive(order.status)" finish-status="success" align-center size="small">
               <el-step title="提交订单" />
               <el-step title="付款成功" />
-              <el-step title="商品出库" />
-              <el-step title="确认收货" />
+              <el-step title="顺丰速运出库" />
+              <el-step title="确认收货完成" />
             </el-steps>
           </div>
-          
-          <div class="order-body">
-            <div class="order-info">
-              <div class="total">
-                实付金额：<span class="price">¥ {{ order.totalAmount }}</span>
+
+          <!-- 订单内容与价格明细 -->
+          <div class="card-body-content">
+            <div class="order-goods-summary">
+              <div class="goods-desc-line">
+                <span class="store-badge">自营仓直发</span>
+                <span class="goods-name">商品订单共包含所选精选商品，全链路正品溯源保障</span>
               </div>
-              <div class="time"><el-icon><Calendar /></el-icon> 创建时间：{{ order.createTime }}</div>
             </div>
 
-            <div class="order-actions">
+            <div class="order-price-summary">
+              <span class="total-label">实付款：</span>
+              <span class="total-curr">¥</span>
+              <span class="total-price">{{ order.totalAmount }}</span>
+              <span class="freight-hint">(含顺丰保价运费)</span>
+            </div>
+
+            <!-- 操作按钮组 -->
+            <div class="order-actions-zone">
+              <!-- 待付款 -->
               <template v-if="order.status === 0">
-                <el-button type="info" plain round size="small" @click="handleCancel(order)">取消订单</el-button>
-                <el-button type="danger" round size="small" :icon="Wallet" class="pay-btn" @click="handlePay(order)">立即支付</el-button>
-              </template>
-
-              <template v-if="order.status === 1">
-                <el-button type="info" plain round size="small" @click="handleRefund(order)">申请退款</el-button>
-                <el-button type="primary" plain round size="small">催促发货</el-button>
-              </template>
-
-              <template v-if="order.status === 2">
-                <el-button type="info" plain round size="small" @click="handleRefund(order)">申请退款</el-button>
-                <el-button type="primary" plain round size="small" :icon="Van" @click="handleViewLogistics(order)">查看物流</el-button>
-                <el-button type="success" round size="small" :icon="Select" @click="handleConfirmReceipt(order)">确认收货</el-button>
-              </template>
-
-              <template v-if="order.status === 3 || order.status === 4">
-                <template v-if="order.status === 3">
-                  <el-button 
-                    v-if="order.commentStatus === 0"
-                    type="primary" :icon="ChatDotRound" round size="small" class="comment-btn" @click="goToComment(order)"
-                  >
-                    评价商品
-                  </el-button>
-                  <el-button v-else type="info" plain round size="small" disabled>已评价</el-button>
-                </template>
-
-                <el-button type="info" plain link :icon="Delete" @click="handleDelete(order)">删除记录</el-button>
-              </template>
-
-              <template v-if="order.status === 5">
-                <el-button type="info" plain round size="small" disabled>退款已完成</el-button>
-                <el-button type="info" plain link :icon="Delete" @click="handleDelete(order)">删除记录</el-button>
-              </template>
-
-              <template v-if="order.status === 6">
-                <el-button type="danger" plain round size="small" disabled class="auditing-btn">
-                  退款审核中...
+                <el-button type="danger" size="default" class="act-btn btn-primary-red" :icon="Wallet" @click="handlePay(order)">
+                  立即付款
                 </el-button>
+                <el-button size="default" class="act-btn" @click="handleCancel(order)">
+                  取消订单
+                </el-button>
+              </template>
+
+              <!-- 待发货 -->
+              <template v-if="order.status === 1">
+                <el-button size="default" class="act-btn" @click="handleRemindDelivery">
+                  催促发货
+                </el-button>
+                <el-button size="default" class="act-btn" @click="handleRefund(order)">
+                  申请退款
+                </el-button>
+              </template>
+
+              <!-- 待收货 -->
+              <template v-if="order.status === 2">
+                <el-button type="primary" size="default" class="act-btn" :icon="Van" @click="handleViewLogistics(order)">
+                  查看物流
+                </el-button>
+                <el-button type="success" size="default" class="act-btn" @click="handleConfirmReceipt(order)">
+                  确认收货
+                </el-button>
+                <el-button size="default" class="act-btn" @click="handleRefund(order)">
+                  申请售后退款
+                </el-button>
+              </template>
+
+              <!-- 已完成 -->
+              <template v-if="order.status === 3">
+                <el-button type="primary" size="default" class="act-btn" :icon="ChatLineSquare" @click="goToComment(order)">
+                  评价晒单
+                </el-button>
+                <el-button size="default" class="act-btn" :icon="Van" @click="handleViewLogistics(order)">
+                  物流记录
+                </el-button>
+                <el-button size="default" class="act-btn" @click="router.push('/')">
+                  再次购买
+                </el-button>
+                <el-button link type="danger" :icon="Delete" @click="handleDelete(order)">
+                  删除
+                </el-button>
+              </template>
+
+              <!-- 已取消 / 已退款 -->
+              <template v-if="order.status === 4 || order.status === 5">
+                <el-button size="default" class="act-btn" @click="router.push('/')">
+                  重新选购
+                </el-button>
+                <el-button link type="danger" :icon="Delete" @click="handleDelete(order)">
+                  删除记录
+                </el-button>
+              </template>
+
+              <!-- 退款审核中 -->
+              <template v-if="order.status === 6">
+                <el-tag type="warning" effect="plain" class="audit-tag">
+                  运营管家正在加急审核您的退款
+                </el-tag>
               </template>
             </div>
           </div>
-        </el-card>
+        </div>
       </div>
     </main>
 
-    <el-dialog 
-      v-model="logisticsDialogVisible" 
-      title="物流跟踪详情" 
-      width="450px" 
-      class="cute-dialog"
-      destroy-on-close
-    >
-      <div class="logistics-header">
-        <el-icon class="l-icon"><Box /></el-icon>
-        <div class="l-info">
-          <div class="l-company">顺丰速运</div>
-          <div class="l-sn">运单号：SF{{ currentLogisticsSn.substring(0, 12) }}</div>
-        </div>
-      </div>
-      
-      <el-timeline class="logistics-timeline">
-        <el-timeline-item
-          v-for="(activity, index) in mockLogisticsData"
-          :key="index"
-          :color="activity.color || '#cbd5e1'"
-          :timestamp="activity.timestamp"
-          placement="top"
-        >
-          <div class="timeline-content" :style="{ color: index === 0 ? '#0f172a' : '#64748b', fontWeight: index === 0 ? 'bold' : 'normal' }">
-            {{ activity.content }}
+    <!-- 顺丰速运物流时效模态框 -->
+    <el-dialog v-model="logisticsDialogVisible" title="顺丰速运 · 真实轨迹跟踪" width="560px" class="sf-logistics-dialog" append-to-body>
+      <div class="logistics-modal-content">
+        <div class="sf-header-card">
+          <div class="sf-brand">
+            <span class="sf-logo">SF</span>
+            <span class="sf-name">顺丰特快 (冷链温控 / 易碎保价)</span>
           </div>
-        </el-timeline-item>
-      </el-timeline>
-      
-      <template #footer>
-        <el-button type="primary" round class="close-btn" @click="logisticsDialogVisible = false">我知道了</el-button>
-      </template>
+          <div class="sf-sn">运单号：SF{{ currentLogisticsSn?.replace(/[^0-9]/g, '').slice(-12) || '102938475612' }}</div>
+        </div>
+
+        <el-timeline class="sf-timeline">
+          <el-timeline-item
+            v-for="(activity, index) in mockLogisticsData"
+            :key="index"
+            :type="index === 0 ? 'primary' : 'info'"
+            :color="activity.color"
+            :timestamp="activity.timestamp"
+            placement="top"
+          >
+            <div class="timeline-activity-text" :class="{ highlight: index === 0 }">
+              {{ activity.content }}
+            </div>
+          </el-timeline-item>
+        </el-timeline>
+      </div>
     </el-dialog>
+
+    <ClientFooter />
   </div>
 </template>
 
 <style scoped>
-.order-page { min-height: 100vh; background: #f0f9ff; padding-top: 80px; padding-bottom: 50px; }
-.glass-header { position: fixed; top: 0; left: 0; right: 0; height: 60px; background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px); display: flex; justify-content: center; z-index: 100; border-bottom: 1px solid #e0f2fe; }
-.header-content { width: 800px; display: flex; align-items: center; padding: 0 20px; }
-.back-btn { font-size: 14px; font-weight: bold; color: #0369a1; }
-.title { margin-left: 20px; font-weight: bold; color: #0369a1; }
+.orders-page-layout {
+  min-height: 100vh;
+  background-color: #f8fafc;
+  display: flex;
+  flex-direction: column;
+}
 
-.container { width: 800px; max-width: 95%; margin: 0 auto; }
-.glass-card { border-radius: 18px; border: 1px solid rgba(186, 230, 253, 0.5); background: rgba(255, 255, 255, 0.85); box-shadow: 0 8px 25px rgba(2, 132, 199, 0.05); margin-bottom: 20px; }
-.tabs-card { padding: 5px 20px; margin-bottom: 25px; }
+.orders-container {
+  width: 1220px;
+  max-width: 96%;
+  margin: 0 auto;
+  padding: 24px 0 60px;
+  flex: 1;
+}
 
-:deep(.custom-tabs .el-tabs__nav-wrap::after) { display: none; }
-:deep(.custom-tabs .el-tabs__item) { font-size: 15px; font-weight: bold; color: #64748b; }
-:deep(.custom-tabs .el-tabs__item.is-active) { color: #0284c7; }
-:deep(.custom-tabs .el-tabs__active-bar) { background-color: #0284c7; border-radius: 4px; }
+/* 面包屑 */
+.breadcrumb-bar {
+  padding: 0 0 16px;
+  font-size: 13px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
-.order-header { display: flex; justify-content: space-between; border-bottom: 1px dashed #e2e8f0; padding-bottom: 15px; margin-bottom: 15px; }
-.sn { color: #475569; font-size: 13px; font-weight: bold; }
+.crumb-link {
+  cursor: pointer;
+  transition: color 0.2s;
+}
 
-.order-body { display: flex; justify-content: space-between; align-items: flex-end; }
-.price { color: #f43f5e; font-size: 24px; font-weight: 900; margin-left: 5px; }
-.time { color: #94a3b8; font-size: 12px; margin-top: 8px; display: flex; align-items: center; gap: 4px; }
+.crumb-link:hover {
+  color: #0284c7;
+}
 
-.order-actions { display: flex; gap: 10px; align-items: center; }
-.pay-btn { background-color: #f43f5e; border: none; font-weight: bold; }
-.pay-btn:hover { background-color: #e11d48; }
-.comment-btn { background-color: #0ea5e9; border: none; font-weight: bold; }
-.comment-btn:hover { background-color: #0284c7; }
-/* 审核中按钮动画 */
-.auditing-btn { border-color: #fca5a5; color: #ef4444; background: #fef2f2; opacity: 0.8; }
+.crumb-sep {
+  color: #cbd5e1;
+}
 
-.empty-box { text-align: center; padding-top: 80px; padding-bottom: 50px; color: #94a3b8; }
-.empty-box p { margin-top: 15px; font-weight: bold; }
+.crumb-current {
+  color: #0f172a;
+  font-weight: bold;
+}
 
-/* 物流弹窗专属样式 */
-:deep(.cute-dialog) { border-radius: 16px; overflow: hidden; }
-:deep(.cute-dialog .el-dialog__header) { background: #f8fafc; margin-right: 0; border-bottom: 1px solid #f1f5f9; padding: 20px; font-weight: bold; color: #0f172a; }
-.logistics-header { display: flex; align-items: center; gap: 15px; background: #f0f9ff; padding: 15px; border-radius: 12px; margin-bottom: 25px; border: 1px solid #bae6fd; }
-.l-icon { font-size: 32px; color: #0ea5e9; }
-.l-company { font-weight: bold; color: #0369a1; font-size: 15px; margin-bottom: 4px; }
-.l-sn { font-size: 13px; color: #64748b; }
-.logistics-timeline { padding-left: 5px; margin-top: 15px; }
-.timeline-content { font-size: 14px; line-height: 1.5; margin-top: 5px; }
-.close-btn { width: 100%; font-weight: bold; background: #f1f5f9; color: #475569; border: none; }
-.close-btn:hover { background: #e2e8f0; }
+/* 状态 Tab 栏 */
+.tabs-filter-card {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02);
+  display: flex;
+  padding: 6px;
+  margin-bottom: 24px;
+}
 
-.order-step-bar { margin: 15px 0 20px; padding: 12px 10px; background: #f8fafc; border-radius: 12px; }
+.tab-pill {
+  flex: 1;
+  text-align: center;
+  padding: 12px 10px;
+  font-size: 14px;
+  font-weight: bold;
+  color: #64748b;
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
 
-@media (max-width: 768px) {
-  .order-body { flex-direction: column; align-items: flex-start; gap: 15px; }
-  .order-actions { width: 100%; justify-content: flex-end; flex-wrap: wrap; }
+.tab-pill:hover {
+  color: #0284c7;
+}
+
+.tab-pill.active {
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  color: #ffffff;
+}
+
+.badge {
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 10px;
+}
+
+.tab-pill.active .badge {
+  background: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+}
+
+.badge.red { background-color: #ffe4e6; color: #e11d48; }
+.badge.blue { background-color: #e0f2fe; color: #0284c7; }
+
+/* 订单卡片 */
+.order-list-box {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.order-box-card {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02);
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.order-box-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+}
+
+.card-header-bar {
+  background-color: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 14px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.order-time {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.order-sn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.copy-btn {
+  cursor: pointer;
+  color: #0ea5e9;
+}
+
+.copy-btn:hover {
+  color: #0284c7;
+}
+
+.vendor-tag {
+  background-color: #f0f9ff;
+  color: #0284c7;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.status-pill {
+  font-weight: bold;
+  font-size: 12px;
+  border-radius: 12px;
+}
+
+/* 流程图 */
+.order-timeline-steps {
+  padding: 20px 40px;
+  border-bottom: 1px solid #f8fafc;
+  background-color: #fcfdfe;
+}
+
+/* 卡片主体 */
+.card-body-content {
+  padding: 20px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.order-goods-summary {
+  flex: 1;
+}
+
+.goods-desc-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.store-badge {
+  background-color: #ffe4e6;
+  color: #e11d48;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.goods-name {
+  font-size: 14px;
+  color: #334155;
+}
+
+.order-price-summary {
+  width: 220px;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+}
+
+.total-label {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.total-curr {
+  font-size: 16px;
+  font-weight: bold;
+  color: #f43f5e;
+}
+
+.total-price {
+  font-size: 24px;
+  font-weight: 900;
+  color: #f43f5e;
+}
+
+.freight-hint {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-left: 4px;
+}
+
+/* 操作按钮 */
+.order-actions-zone {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.act-btn {
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 13px;
+}
+
+.btn-primary-red {
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  border: none;
+  color: #ffffff;
+}
+
+.audit-tag {
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+/* 空状态 */
+.empty-orders-view {
+  text-align: center;
+  padding: 80px 20px;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+}
+
+.empty-icon-circle {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: #f8fafc;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto 16px;
+}
+
+.empty-orders-view h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  color: #0f172a;
+}
+
+.empty-orders-view p {
+  margin: 0 0 24px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.go-shop-btn {
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  border: none;
+  font-size: 14px;
+  font-weight: bold;
+  padding: 0 32px;
+}
+
+/* 顺丰模态框 */
+.sf-header-card {
+  background: linear-gradient(135deg, #0f172a, #1e293b);
+  color: #ffffff;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.sf-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.sf-logo {
+  background-color: #f43f5e;
+  color: #ffffff;
+  font-weight: 900;
+  font-size: 14px;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.sf-name {
+  font-size: 15px;
+  font-weight: bold;
+}
+
+.sf-sn {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.timeline-activity-text {
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.timeline-activity-text.highlight {
+  color: #0ea5e9;
+  font-weight: bold;
 }
 </style>

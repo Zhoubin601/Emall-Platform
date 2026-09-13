@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-// ✨ 引入了 Delete 图标和弹窗组件
-import { Back, Edit, Calendar, Goods, Ticket, Delete } from '@element-plus/icons-vue'
+import { Edit, Goods, Ticket, Delete, ChatLineSquare } from '@element-plus/icons-vue'
 import request from '../../utils/request'
 import { useUserStore } from '../../stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import UserCenterLayout from '../../components/UserCenterLayout.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -26,8 +26,7 @@ const fetchMyComments = async () => {
 }
 
 const getSafeUrl = (rawUrl: string) => {
-  if (!rawUrl) return ''
-  return rawUrl
+  return rawUrl || ''
 }
 
 const goToEdit = (c: any) => {
@@ -37,9 +36,8 @@ const goToEdit = (c: any) => {
   })
 }
 
-// ✨ 新增：删除评价的业务逻辑
 const handleDelete = (c: any) => {
-  ElMessageBox.confirm('确定要删除这条评价吗？删除后将无法恢复。', '删除确认', {
+  ElMessageBox.confirm('确定要删除这条评价吗？删除后将无法恢复。', '删除评价确认', {
     confirmButtonText: '确定删除',
     cancelButtonText: '取消',
     type: 'error'
@@ -47,7 +45,7 @@ const handleDelete = (c: any) => {
     try {
       await request.delete(`/comment/${c.id}`)
       ElMessage.success('评价已成功删除')
-      fetchMyComments() // 重新获取评价列表
+      fetchMyComments()
     } catch (error) {
       ElMessage.error('删除评价失败，请重试')
     }
@@ -58,93 +56,236 @@ onMounted(() => fetchMyComments())
 </script>
 
 <template>
-  <div class="my-comments-page">
-    <header class="glass-header">
-      <div class="header-content">
-        <el-button link :icon="Back" @click="router.push('/')">返回首页</el-button>
-        <span class="page-title">评价管理中心</span>
+  <UserCenterLayout activeMenu="comments" pageTitle="我的评价中心">
+    <div class="my-comments-view-wrap" v-loading="loading">
+      <div class="section-title-bar">
+        <div>
+          <h2>我的评价与买家秀</h2>
+          <span class="sub-hint">回看您的真实使用体验与分享，支持随时重新编辑与管理</span>
+        </div>
+        <span class="comment-count-pill" v-if="comments.length > 0">共发表 {{ comments.length }} 条评价</span>
       </div>
-    </header>
 
-    <main class="container">
-      <div v-loading="loading">
-        <el-empty v-if="comments.length === 0 && !loading" description="您还没有发表过评价哦~" />
-
-        <el-card v-for="c in comments" :key="c.id" class="comment-card glass-card">
-          <div class="meta-info">
-            <div class="tag product-name">
-              <el-icon><Goods /></el-icon>
-              <span>{{ c.productName || '精选好物' }}</span>
-            </div>
-            <div class="tag order-sn">
-              <el-icon><Ticket /></el-icon>
-              <span>单号：{{ c.orderSn || '读取中...' }}</span>
-            </div>
-          </div>
-
-          <div class="card-header">
-            <el-rate v-model="c.star" disabled show-score />
-            <div class="action-group">
-              <el-button type="primary" link :icon="Edit" @click="goToEdit(c)">修改评价</el-button>
-              <el-button type="danger" link :icon="Delete" @click="handleDelete(c)">删除评价</el-button>
-            </div>
-          </div>
-
-          <div class="comment-body">
-            <p class="text-content">{{ c.content }}</p>
-            
-            <div class="image-gallery" v-if="c.pics">
-              <el-image 
-                v-for="img in c.pics.split(',')" 
-                :key="img" 
-                :src="getSafeUrl(img)" 
-                :preview-src-list="c.pics.split(',').map((url: string) => getSafeUrl(url))"
-                class="comment-img" 
-                fit="cover"
-              >
-                <template #error>
-                  <div class="error-tip">图片加载失败</div>
-                </template>
-              </el-image>
-            </div>
-          </div>
-
-          <div class="card-footer">
-            <div class="time-box">
-              <el-icon><Calendar /></el-icon>
-              <span>最后更新：{{ c.createTime }}</span>
-            </div>
-          </div>
-        </el-card>
+      <!-- 空状态 -->
+      <div v-if="comments.length === 0 && !loading" class="empty-comments-view">
+        <div class="empty-icon-circle">
+          <el-icon :size="56" color="#cbd5e1"><ChatLineSquare /></el-icon>
+        </div>
+        <h3>您还没有发表过商品评价</h3>
+        <p>购买商品并确认收货后，即可发表专属好评与买家秀照片~</p>
+        <el-button type="primary" round class="go-orders-btn" @click="router.push('/orders')">
+          前往我的订单
+        </el-button>
       </div>
-    </main>
-  </div>
+
+      <!-- 评价列表 -->
+      <div class="comments-card-list" v-else>
+        <div v-for="c in comments" :key="c.id" class="user-comment-card">
+          <!-- 关联商品条 -->
+          <div class="comment-meta-bar">
+            <div class="meta-left">
+              <span class="meta-tag prod-tag">
+                <el-icon><Goods /></el-icon>
+                <span>{{ c.productName || '自营严选商品' }}</span>
+              </span>
+              <span class="meta-tag sn-tag" v-if="c.orderSn">
+                <el-icon><Ticket /></el-icon>
+                <span>单号：{{ c.orderSn }}</span>
+              </span>
+            </div>
+            <div class="meta-actions">
+              <el-button link type="primary" size="small" :icon="Edit" @click="goToEdit(c)">修改评价</el-button>
+              <el-button link type="danger" size="small" :icon="Delete" @click="handleDelete(c)">删除评价</el-button>
+            </div>
+          </div>
+
+          <!-- 评分 -->
+          <div class="comment-rating-row">
+            <el-rate :model-value="c.star" disabled text-color="#ff9900" size="small" />
+            <span class="rating-text">{{ c.star === 5 ? '⭐⭐⭐⭐⭐ 非常满意' : c.star >= 4 ? '⭐⭐⭐⭐ 满意' : '一般' }}</span>
+            <span class="comment-time">{{ c.createTime || '近期已评' }}</span>
+          </div>
+
+          <!-- 评价内容 -->
+          <div class="comment-text-content">
+            {{ c.content }}
+          </div>
+
+          <!-- 买家秀图片网格 -->
+          <div class="comment-photos-grid" v-if="c.pics">
+            <el-image 
+              v-for="img in c.pics.split(',').filter(Boolean)" 
+              :key="img" 
+              :src="getSafeUrl(img)" 
+              :preview-src-list="c.pics.split(',').filter(Boolean).map(getSafeUrl)"
+              fit="cover"
+              class="photo-thumb"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  </UserCenterLayout>
 </template>
 
 <style scoped>
-.my-comments-page { min-height: 100vh; background: #f0f9ff; padding-top: 80px; padding-bottom: 40px; }
-.glass-header { position: fixed; top: 0; width: 100%; height: 60px; background: rgba(255,255,255,0.7); backdrop-filter: blur(10px); z-index: 100; display: flex; justify-content: center; border-bottom: 1px solid #e0f2fe; }
-.header-content { width: 800px; display: flex; align-items: center; padding: 0 20px; }
-.page-title { margin-left: 20px; font-weight: bold; color: #0369a1; }
-.container { width: 800px; max-width: 95%; margin: 0 auto; }
-.glass-card { border-radius: 20px; border: none; background: rgba(255,255,255,0.85); margin-bottom: 25px; box-shadow: 0 10px 30px rgba(186, 230, 253, 0.3); padding: 15px; }
+.my-comments-view-wrap {
+  width: 100%;
+}
 
-.meta-info { display: flex; gap: 15px; margin-bottom: 15px; }
-.tag { display: flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 10px; font-size: 13px; font-weight: bold; }
-.product-name { background: #e0f2fe; color: #0369a1; }
-.order-sn { background: #f1f5f9; color: #64748b; }
+.section-title-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
 
-.card-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #e2e8f0; padding-bottom: 10px; margin-bottom: 15px; }
-/* ✨ 新增操作组的样式，让修改和删除按钮有一些间隔 */
-.action-group { display: flex; gap: 15px; }
+.section-title-bar h2 {
+  margin: 0 0 6px;
+  font-size: 20px;
+  color: #0f172a;
+}
 
-.text-content { color: #475569; line-height: 1.6; margin-bottom: 15px; font-size: 15px; }
+.sub-hint {
+  font-size: 13px;
+  color: #64748b;
+}
 
-.image-gallery { display: flex; gap: 10px; margin-bottom: 10px; }
-.comment-img { width: 100px; height: 100px; border-radius: 12px; border: 2px solid #fff; cursor: zoom-in; }
+.comment-count-pill {
+  font-size: 13px;
+  color: #0284c7;
+  font-weight: bold;
+}
 
-.card-footer { display: flex; justify-content: flex-end; color: #94a3b8; font-size: 12px; margin-top: 10px; }
-.time-box { display: flex; align-items: center; gap: 5px; background: #f8fafc; padding: 5px 15px; border-radius: 20px; }
+/* 空状态 */
+.empty-comments-view {
+  text-align: center;
+  padding: 60px 20px;
+}
 
-.error-tip { background: #f1f5f9; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #94a3b8; }
+.empty-icon-circle {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: #f8fafc;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto 16px;
+}
+
+.empty-comments-view h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  color: #0f172a;
+}
+
+.empty-comments-view p {
+  margin: 0 0 20px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.go-orders-btn {
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  border: none;
+  font-weight: bold;
+}
+
+/* 评价卡片列表 */
+.comments-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.user-comment-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: box-shadow 0.2s;
+}
+
+.user-comment-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+}
+
+.comment-meta-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 12px;
+}
+
+.meta-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.meta-tag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 6px;
+}
+
+.prod-tag {
+  background-color: #f0f9ff;
+  color: #0284c7;
+  font-weight: bold;
+}
+
+.sn-tag {
+  background-color: #f8fafc;
+  color: #64748b;
+}
+
+.comment-rating-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rating-text {
+  font-size: 12px;
+  font-weight: bold;
+  color: #f43f5e;
+}
+
+.comment-time {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-left: auto;
+}
+
+.comment-text-content {
+  font-size: 14px;
+  color: #334155;
+  line-height: 1.6;
+}
+
+.comment-photos-grid {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.photo-thumb {
+  width: 90px;
+  height: 90px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+}
 </style>

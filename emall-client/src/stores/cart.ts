@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { readStoredJson } from '../utils/storage'
 
+
 export interface CartItem {
   id: number
   skuId: number // ✨ 新增：SKU唯一标识，区分同一商品的不同规格
@@ -13,12 +14,13 @@ export interface CartItem {
   stock: number 
   spec: string 
   checked: boolean 
+  isFlash?: boolean
+  originalPrice?: number
 }
 
 export const useCartStore = defineStore('cart', () => {
   const storedItems = readStoredJson<unknown>('mall_cart', [])
   const items = ref<CartItem[]>(Array.isArray(storedItems) ? storedItems : [])
-
   const saveCart = () => {
     localStorage.setItem('mall_cart', JSON.stringify(items.value))
   }
