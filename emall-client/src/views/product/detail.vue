@@ -3,7 +3,8 @@ import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { 
   ShoppingCart, Star, StarFilled, Lightning, 
-  Check, Service, Medal, Van, CircleCheck, Picture
+  Check, Service, Medal, Van, CircleCheck, Picture,
+  CircleCheckFilled, RefreshRight, Coin
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import request from '../../utils/request'
@@ -75,6 +76,10 @@ const handlePreviewImage = (src: string) => {
 
 // 秒杀倒计时引擎
 const flashSaleStatus = ref(0) // 0: 无/已结束, 1: 预告, 2: 进行中
+const countdownDays = ref('00')
+const countdownHours = ref('00')
+const countdownMinutes = ref('00')
+const countdownSeconds = ref('00')
 const countdownStr = ref('')
 let timer: any = null
 
@@ -99,14 +104,29 @@ const calculateFlashSale = () => {
 }
 
 const updateTimeText = (diff: number) => {
-  const h = Math.floor(diff / (1000 * 60 * 60))
-  const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
-  const s = Math.floor((diff % (1000 * 60)) / 1000)
-  countdownStr.value = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+  const totalSeconds = Math.max(0, Math.floor(diff / 1000))
+  const days = Math.floor(totalSeconds / 86400)
+  const hours = Math.floor((totalSeconds % 86400) / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+
+  countdownDays.value = days.toString().padStart(2, '0')
+  countdownHours.value = hours.toString().padStart(2, '0')
+  countdownMinutes.value = minutes.toString().padStart(2, '0')
+  countdownSeconds.value = seconds.toString().padStart(2, '0')
+  countdownStr.value = `${days > 0 ? `${days}天 ` : ''}${countdownHours.value}:${countdownMinutes.value}:${countdownSeconds.value}`
+}
+
+// 滚动吸底快捷购买栏状态
+const showStickyBar = ref(false)
+const handleScroll = () => {
+  const scrollY = window.scrollY || document.documentElement.scrollTop
+  showStickyBar.value = scrollY > 580
 }
 
 onUnmounted(() => {
   if (timer) clearInterval(timer)
+  window.removeEventListener('scroll', handleScroll)
 })
 
 // 价格与库存计算
@@ -116,6 +136,15 @@ const currentPrice = computed(() => {
     return product.value.promoPrice
   }
   return basePrice.value
+})
+
+// 智能计算参考原价，防止出现“原价低于特惠价”的反常数据呈现
+const displayOriginalPrice = computed(() => {
+  const op = Number(product.value.originalPrice || product.value.marketPrice || 0)
+  if (op > currentPrice.value) return op
+  if (basePrice.value > currentPrice.value) return basePrice.value
+  if (flashSaleStatus.value === 2) return Math.round(currentPrice.value * 1.15)
+  return 0
 })
 
 const currentStock = computed(() => selectedSku.value ? selectedSku.value.stock : product.value.stock || 0)
@@ -244,6 +273,7 @@ onMounted(async () => {
   await fetchSkus()
   checkFavoriteStatus()
   fetchComments()
+  window.addEventListener('scroll', handleScroll, { passive: true })
 })
 </script>
 
@@ -313,12 +343,33 @@ onMounted(async () => {
           <!-- 秒杀倒计时条 (进行中或预告) -->
           <div class="flash-sale-bar" v-if="flashSaleStatus !== 0" :class="{ 'is-ongoing': flashSaleStatus === 2 }">
             <div class="fs-left">
-              <el-icon :size="20" class="fs-icon"><Lightning /></el-icon>
-              <span class="fs-title">{{ flashSaleStatus === 2 ? '⚡ E-MALL 限时秒杀特惠' : '⏰ 秒杀活动即将开抢' }}</span>
+              <div class="fs-icon-wrap">
+                <el-icon :size="18" class="fs-icon"><Lightning /></el-icon>
+              </div>
+              <div class="fs-title-group">
+                <span class="fs-title">{{ flashSaleStatus === 2 ? 'E-MALL 限时特惠秒杀' : '限时秒杀活动即将开抢' }}</span>
+                <span class="fs-sub-badge">官方正品 · 平台直补</span>
+              </div>
             </div>
             <div class="fs-right">
-              <span class="fs-label">{{ flashSaleStatus === 2 ? '本场距结束：' : '下场距开抢：' }}</span>
-              <span class="fs-time">{{ countdownStr }}</span>
+              <span class="fs-label">{{ flashSaleStatus === 2 ? '距本场结束' : '距本场开抢' }}</span>
+              <div class="countdown-timer-group">
+                <span class="timer-unit-box" v-if="Number(countdownDays) > 0">
+                  <span class="t-val">{{ countdownDays }}</span>
+                  <span class="t-txt">天</span>
+                </span>
+                <span class="timer-unit-box">
+                  <span class="t-val">{{ countdownHours }}</span>
+                </span>
+                <span class="timer-colon">:</span>
+                <span class="timer-unit-box">
+                  <span class="t-val">{{ countdownMinutes }}</span>
+                </span>
+                <span class="timer-colon">:</span>
+                <span class="timer-unit-box">
+                  <span class="t-val">{{ countdownSeconds }}</span>
+                </span>
+              </div>
             </div>
           </div>
 
@@ -329,8 +380,8 @@ onMounted(async () => {
                 <span class="price-label">活动特惠价</span>
                 <span class="currency">¥</span>
                 <span class="price-num">{{ currentPrice }}</span>
-                <span class="orig-price" v-if="flashSaleStatus === 2 || (product.promoPrice && currentPrice < basePrice)">
-                  参考原价 ¥{{ basePrice }}
+                <span class="orig-price" v-if="displayOriginalPrice > currentPrice">
+                  参考原价 ¥{{ displayOriginalPrice }}
                 </span>
               </div>
               <div class="sales-stats">
@@ -550,15 +601,15 @@ onMounted(async () => {
           <el-tab-pane label="售后服务与保障" name="service">
             <div class="tab-content service-tab">
               <div class="service-block">
-                <h4>🛡️ 厂家服务</h4>
+                <h4><el-icon style="vertical-align: -2px; margin-right: 4px; color: var(--em-primary);"><CircleCheckFilled /></el-icon> 厂家正品直供服务</h4>
                 <p>本平台销售并发货的商品，由 E-MALL 提供正品发票和相应的售后服务。请您放心购买！</p>
               </div>
               <div class="service-block">
-                <h4>📦 7天无理由退换货保障</h4>
+                <h4><el-icon style="vertical-align: -2px; margin-right: 4px; color: var(--em-primary);"><RefreshRight /></el-icon> 7天无理由退换货保障</h4>
                 <p>商品签收之日起7日内，在保证商品完好、包装齐全且不影响二次销售的前提下，支持无理由退货。顺丰上门取件，极速退款直达账户。</p>
               </div>
               <div class="service-block">
-                <h4>⚡ 价格保护政策</h4>
+                <h4><el-icon style="vertical-align: -2px; margin-right: 4px; color: var(--em-primary);"><Coin /></el-icon> 全周期价格保护承诺</h4>
                 <p>自签收之日起 7 天内，若本站同一商品规格出现降价，您可申请退还差价！</p>
               </div>
             </div>
@@ -573,6 +624,46 @@ onMounted(async () => {
         <img :src="previewImageSrc" style="max-width: 100%; max-height: 500px; border-radius: 8px;" />
       </div>
     </el-dialog>
+
+    <!-- 4. 滚动吸底快捷购买栏 (Sticky Bottom Action Bar) -->
+    <transition name="slide-up">
+      <div class="sticky-action-bar" v-if="showStickyBar && product.id">
+        <div class="sticky-bar-inner">
+          <div class="sticky-product-meta">
+            <img :src="currentPic" class="sticky-thumb" :alt="product.name" />
+            <div class="sticky-text">
+              <div class="sticky-title">{{ product.name }}</div>
+              <div class="sticky-spec">已选：{{ currentSpecName }} · 剩余 {{ currentStock }} 件</div>
+            </div>
+          </div>
+          <div class="sticky-price-area">
+            <span class="sticky-price-label">特惠价</span>
+            <span class="sticky-curr">¥</span>
+            <span class="sticky-price-val">{{ currentPrice }}</span>
+          </div>
+          <div class="sticky-buttons">
+            <el-button 
+              type="danger" 
+              class="sticky-cart-btn" 
+              :icon="ShoppingCart"
+              :disabled="currentStock <= 0 || !isSellable"
+              @click="handleAddToCart"
+            >
+              加入购物车
+            </el-button>
+            <el-button 
+              type="primary" 
+              class="sticky-buy-btn" 
+              :icon="Lightning"
+              :disabled="currentStock <= 0 || !isSellable"
+              @click="handleBuyNow"
+            >
+              立即购买
+            </el-button>
+          </div>
+        </div>
+      </div>
+    </transition>
 
     <!-- 统一页脚 -->
     <ClientFooter />
@@ -626,9 +717,9 @@ onMounted(async () => {
 /* 主商品展示卡片 */
 .product-main-card {
   background: #ffffff;
-  border-radius: 20px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+  border-radius: var(--em-radius-lg);
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  box-shadow: var(--em-shadow-card);
   padding: 30px;
   display: grid;
   grid-template-columns: 460px 1fr;
@@ -791,51 +882,108 @@ onMounted(async () => {
 
 /* 秒杀倒计时条 */
 .flash-sale-bar {
-  background: linear-gradient(135deg, #f43f5e, #fb7185);
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
   color: #ffffff;
-  padding: 10px 16px;
-  border-radius: 10px;
+  padding: 10px 18px;
+  border-radius: var(--em-radius-md);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.25);
 }
 
 .fs-left {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-weight: bold;
+  gap: 10px;
+}
+
+.fs-icon-wrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+}
+
+.fs-title-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.fs-title {
   font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #ffffff;
+}
+
+.fs-sub-badge {
+  font-size: 11px;
+  opacity: 0.9;
+  color: #fecaca;
+  margin-top: 1px;
 }
 
 .fs-right {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 600;
 }
 
-.fs-time {
-  background-color: #ffffff;
-  color: #e11d48;
-  font-weight: 900;
-  padding: 2px 8px;
+.countdown-timer-group {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.timer-unit-box {
+  background: #090d16;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 13px;
+  padding: 3px 6px;
   border-radius: 4px;
-  font-family: monospace;
-  font-size: 14px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: baseline;
+  gap: 1px;
+  min-width: 24px;
+  justify-content: center;
+}
+
+.t-val {
+  font-variant-numeric: tabular-nums;
+}
+
+.t-txt {
+  font-size: 10px;
+  color: #94a3b8;
+  margin-left: 1px;
+}
+
+.timer-colon {
+  font-weight: 800;
+  color: #ffffff;
+  font-size: 13px;
 }
 
 /* 价格卡片 */
 .pricing-card {
   background-color: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  border-radius: var(--em-radius-md);
   padding: 16px 20px;
 }
 
 .flash-pricing {
-  background: linear-gradient(135deg, #fff1f2 0%, #ffffff 100%);
-  border-color: #fecdd3;
+  background: linear-gradient(135deg, #fff7ed 0%, #ffffff 100%);
+  border-color: rgba(249, 115, 22, 0.3);
 }
 
 .price-row {
@@ -852,22 +1000,24 @@ onMounted(async () => {
 
 .price-label {
   font-size: 12px;
-  color: #f43f5e;
+  color: var(--em-accent);
   font-weight: bold;
   margin-right: 4px;
 }
 
 .currency {
-  color: #f43f5e;
+  color: var(--em-accent);
   font-size: 20px;
   font-weight: bold;
 }
 
 .price-num {
-  color: #f43f5e;
+  color: var(--em-accent);
   font-size: 34px;
   font-weight: 900;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.5px;
 }
 
 .orig-price {
@@ -1065,30 +1215,40 @@ onMounted(async () => {
   padding: 0 32px;
   border-radius: 24px;
   box-shadow: 0 4px 14px rgba(2, 132, 199, 0.12);
-  transition: all 0.2s;
+  transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .btn-add-cart:hover {
   background: #e0f2fe;
   border-color: #0284c7;
   transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(2, 132, 199, 0.2);
+  box-shadow: 0 6px 18px rgba(2, 132, 199, 0.22);
+}
+
+.btn-add-cart:active {
+  transform: scale(0.98);
 }
 
 .btn-buy-now {
-  background: linear-gradient(135deg, #0284c7, #0369a1);
+  background: linear-gradient(135deg, var(--em-accent), var(--em-accent-hover));
   border: none;
+  color: #fff;
   font-weight: bold;
   height: 48px;
-  padding: 0 36px;
+  padding: 0 38px;
   border-radius: 24px;
-  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.3);
-  transition: all 0.2s;
+  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.35);
+  transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  letter-spacing: 0.5px;
 }
 
 .btn-buy-now:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(2, 132, 199, 0.4);
+  box-shadow: 0 8px 22px rgba(249, 115, 22, 0.45);
+}
+
+.btn-buy-now:active {
+  transform: scale(0.98);
 }
 
 .fav-btn {
@@ -1357,5 +1517,135 @@ onMounted(async () => {
   font-size: 13px;
   color: #64748b;
   line-height: 1.6;
+}
+
+/* 滚动吸底快捷购买栏 (Sticky Bottom Action Bar) */
+.sticky-action-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.08);
+  z-index: 999;
+  padding: 12px 24px;
+}
+
+.sticky-bar-inner {
+  max-width: 1220px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sticky-product-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.sticky-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.sticky-text {
+  min-width: 0;
+}
+
+.sticky-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sticky-spec {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.sticky-price-area {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin: 0 24px;
+}
+
+.sticky-price-label {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.sticky-curr {
+  font-size: 14px;
+  font-weight: 800;
+  color: #e11d48;
+}
+
+.sticky-price-val {
+  font-size: 24px;
+  font-weight: 900;
+  color: #e11d48;
+  letter-spacing: -0.02em;
+}
+
+.sticky-buttons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sticky-cart-btn {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: #e11d48;
+  font-weight: 700;
+  border-radius: 20px;
+  padding: 10px 20px;
+}
+
+.sticky-cart-btn:hover {
+  background: #ffe4e6;
+  border-color: #fda4af;
+  color: #be123c;
+}
+
+.sticky-buy-btn {
+  background: linear-gradient(135deg, #e11d48, #be123c);
+  border-color: #be123c;
+  color: #ffffff;
+  font-weight: 700;
+  border-radius: 20px;
+  padding: 10px 24px;
+  box-shadow: 0 4px 12px rgba(225, 29, 72, 0.25);
+}
+
+.sticky-buy-btn:hover {
+  background: linear-gradient(135deg, #f43f5e, #e11d48);
+}
+
+/* 吸底栏过渡动效 */
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+}
+
+.slide-up-enter-from,
+.slide-up-leave-to {
+  transform: translateY(100%);
+  opacity: 0;
 }
 </style>

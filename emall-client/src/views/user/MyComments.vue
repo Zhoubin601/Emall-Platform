@@ -102,7 +102,7 @@ onMounted(() => fetchMyComments())
           <!-- 评分 -->
           <div class="comment-rating-row">
             <el-rate :model-value="c.star" disabled text-color="#ff9900" size="small" />
-            <span class="rating-text">{{ c.star === 5 ? '⭐⭐⭐⭐⭐ 非常满意' : c.star >= 4 ? '⭐⭐⭐⭐ 满意' : '一般' }}</span>
+            <span class="rating-text">{{ c.star === 5 ? '非常满意' : c.star >= 4 ? '满意' : c.star >= 3 ? '基本满意' : '体验一般' }}</span>
             <span class="comment-time">{{ c.createTime || '近期已评' }}</span>
           </div>
 

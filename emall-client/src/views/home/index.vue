@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue' 
 import { 
-  Search, ShoppingCart, StarFilled, Ticket, Location, ArrowDown, Right, Service
+  Search, ShoppingCart, StarFilled, Ticket, Location, ArrowDown, Right, Service,
+  Iphone, Position, House, Present, OfficeBuilding, CircleCheckFilled, Lightning, Tickets, User
 } from '@element-plus/icons-vue'
 import request from '../../utils/request'
 import { useRouter } from 'vue-router'
@@ -77,19 +78,19 @@ const serviceDialogContent = ref('')
 
 const openServiceGuide = (type: string) => {
   if (type === 'phone') {
-    serviceDialogTitle.value = '📱 话费充值与流量直充服务'
+    serviceDialogTitle.value = '话费充值与流量直充服务'
     serviceDialogContent.value = 'E-MALL 话费与流量充值中心直连运营商核心通道，支持全国手机号码即时到账。当前正在系统升级与维护中，即将开放自主在线充值，如有紧急充值需求请联系在线客服协助！'
   } else if (type === 'travel') {
-    serviceDialogTitle.value = '✈️ 商旅机票与差旅预订通道'
+    serviceDialogTitle.value = '商旅机票与差旅预订通道'
     serviceDialogContent.value = '本专区为企业差旅与高频出行用户提供全球航线特惠直降、专属退改保障服务。系统现已开放企业VIP专属内测，个人通道即将上线！'
   } else if (type === 'hotel') {
-    serviceDialogTitle.value = '🏨 酒店住宿精选预订'
+    serviceDialogTitle.value = '酒店住宿精选预订'
     serviceDialogContent.value = '汇集全球优质星级酒店及精选民宿，支持到店付款与信用住免押金权益，相关通道即将接入！'
   } else if (type === 'b2b') {
-    serviceDialogTitle.value = '🏢 企业采购与批量采购通道'
+    serviceDialogTitle.value = '企业采购与批量采购通道'
     serviceDialogContent.value = '面向企事业单位提供阳光采购、大额团购定制、专票直开及账期服务。如有批量团购需求，请直接点击客服进行人工对接！'
   } else if (type === 'trace') {
-    serviceDialogTitle.value = '🛡️ 全球正品溯源保障体系'
+    serviceDialogTitle.value = '全球正品溯源保障体系'
     serviceDialogContent.value = 'E-MALL 所有自营商品均经过海关检验与一物一码区块链溯源，消费者收到商品后可刮开防伪涂层或扫描包装二维码查看全链路验真报告。'
   }
   serviceDialogVisible.value = true
@@ -524,7 +525,9 @@ onUnmounted(() => {
         </div>
         <ul class="channel-nav-list">
           <li class="channel-item" :class="{ active: sortBy === 'sales' && activeCategory === 0 }" @click="sortBy = 'sales'; activeCategory = 0; selectedParentId = 0; currentPage = 1; fetchProducts()">首页精选</li>
-          <li class="channel-item highlight-item" :class="{ active: sortBy === 'promo' }" @click="sortBy = 'promo'; currentPage = 1; fetchProducts()">⚡ 限时秒杀</li>
+          <li class="channel-item highlight-item" :class="{ active: sortBy === 'promo' }" @click="sortBy = 'promo'; currentPage = 1; fetchProducts()">
+            <el-icon style="vertical-align: -2px; margin-right: 2px;"><Lightning /></el-icon>限时秒杀
+          </li>
           <li class="channel-item" @click="scrollToProductSection()">领券中心</li>
           <li class="channel-item" :class="{ active: sortBy === 'new' }" @click="sortBy = 'new'; currentPage = 1; fetchProducts()">新品首发</li>
           <!-- 动态频道分类列表 -->
@@ -610,11 +613,11 @@ onUnmounted(() => {
           </div>
           <div class="user-stats-row" v-else>
             <div class="stat-col" @click="router.push('/orders')">
-              <div class="stat-num">📦</div>
+              <div class="stat-num"><el-icon><Tickets /></el-icon></div>
               <div class="stat-lbl">我的订单</div>
             </div>
             <div class="stat-col" @click="router.push('/favorites')">
-              <div class="stat-num">⭐</div>
+              <div class="stat-num"><el-icon><StarFilled /></el-icon></div>
               <div class="stat-lbl">收藏夹</div>
             </div>
             <div class="stat-col" @click="router.push('/cart')">
@@ -670,27 +673,27 @@ onUnmounted(() => {
         <!-- 便民服务 6 宫格 -->
         <div class="emall-service-matrix">
           <div class="service-cell" @click="openServiceGuide('phone')">
-            <div class="service-icon">📱</div>
+            <div class="service-icon"><el-icon><Iphone /></el-icon></div>
             <div class="service-text">话费充值</div>
           </div>
           <div class="service-cell" @click="openServiceGuide('travel')">
-            <div class="service-icon">✈️</div>
+            <div class="service-icon"><el-icon><Position /></el-icon></div>
             <div class="service-text">机票商旅</div>
           </div>
           <div class="service-cell" @click="openServiceGuide('hotel')">
-            <div class="service-icon">🏨</div>
+            <div class="service-icon"><el-icon><House /></el-icon></div>
             <div class="service-text">酒店住宿</div>
           </div>
           <div class="service-cell" @click="scrollToProductSection()">
-            <div class="service-icon">🎁</div>
+            <div class="service-icon"><el-icon><Present /></el-icon></div>
             <div class="service-text">礼品卡券</div>
           </div>
           <div class="service-cell" @click="openServiceGuide('b2b')">
-            <div class="service-icon">🏢</div>
+            <div class="service-icon"><el-icon><OfficeBuilding /></el-icon></div>
             <div class="service-text">企业采购</div>
           </div>
           <div class="service-cell" @click="openServiceGuide('trace')">
-            <div class="service-icon">🛡️</div>
+            <div class="service-icon"><el-icon><CircleCheckFilled /></el-icon></div>
             <div class="service-text">正品溯源</div>
           </div>
         </div>
@@ -701,7 +704,9 @@ onUnmounted(() => {
     <div class="emall-container emall-seckill-section" v-if="seckillProducts.length > 0">
       <div class="seckill-header">
         <div class="seckill-title-box">
-          <span class="seckill-logo-text">⚡ 限时秒杀</span>
+          <span class="seckill-logo-text">
+            <el-icon style="vertical-align: -2px; margin-right: 2px;"><Lightning /></el-icon>限时秒杀
+          </span>
           <span class="seckill-sub-title">FLASH DEALS · 超值特惠</span>
         </div>
         <div class="seckill-countdown-box">
@@ -792,14 +797,14 @@ onUnmounted(() => {
             :class="{ active: sortBy === 'new' }" 
             @click="sortBy = 'new'; currentPage = 1; fetchProducts()"
           >
-            <span>✨ 新品上市</span>
+            <span>新品上市</span>
           </div>
           <div 
             class="filter-tab" 
             :class="{ active: sortBy === 'promo' }" 
             @click="sortBy = 'promo'; currentPage = 1; fetchProducts()"
           >
-            <span>⚡ 特惠降价</span>
+            <span><el-icon style="vertical-align: -2px; margin-right: 2px;"><Lightning /></el-icon>特惠降价</span>
           </div>
           <div 
             class="filter-tab" 
@@ -880,7 +885,7 @@ onUnmounted(() => {
 
       <!-- 空数据提示 -->
       <div v-if="filteredProducts.length === 0 && !loading" class="empty-products-box">
-        <div class="empty-icon">🛒</div>
+        <div class="empty-icon"><el-icon :size="52" color="#94a3b8"><ShoppingCart /></el-icon></div>
         <div class="empty-tip">{{ sortBy === 'promo' ? '当前暂无秒杀活动商品' : '没有找到匹配的商品，换个搜索词试试吧~' }}</div>
         <el-button type="primary" size="small" @click="searchKey = ''; activeCategory = 0; selectedParentId = 0; sortBy = 'sales'; fetchProducts()">查看全部商品</el-button>
       </div>
@@ -987,21 +992,21 @@ onUnmounted(() => {
     <!-- 10. 移动端底部快捷导航栏 (Mobile Tabbar) -->
     <nav class="mobile-tabbar">
       <div class="tab-item active" @click="router.push('/')">
-        <span class="tab-icon">🏠</span>
+        <el-icon class="tab-icon" :size="20"><House /></el-icon>
         <span class="tab-label">首页</span>
       </div>
       <div class="tab-item" @click="router.push('/cart')">
         <el-badge :value="cartStore.totalCount" :hidden="cartStore.totalCount === 0" class="tab-badge">
-          <span class="tab-icon">🛒</span>
+          <el-icon class="tab-icon" :size="20"><ShoppingCart /></el-icon>
         </el-badge>
         <span class="tab-label">购物车</span>
       </div>
       <div class="tab-item" @click="router.push('/orders')">
-        <span class="tab-icon">📦</span>
+        <el-icon class="tab-icon" :size="20"><Tickets /></el-icon>
         <span class="tab-label">订单</span>
       </div>
       <div class="tab-item" @click="router.push(userStore.userInfo ? '/profile' : '/login')">
-        <span class="tab-icon">👤</span>
+        <el-icon class="tab-icon" :size="20"><User /></el-icon>
         <span class="tab-label">{{ userStore.userInfo ? '我的' : '登录' }}</span>
       </div>
     </nav>
@@ -1260,7 +1265,10 @@ onUnmounted(() => {
   margin-top: 6px;
   font-size: 12px;
   color: #94a3b8;
-  flex-wrap: wrap;
+  white-space: nowrap;
+  overflow: hidden;
+  height: 20px;
+  line-height: 20px;
 }
 .hot-lead {
   color: #0284c7;
@@ -1318,15 +1326,18 @@ onUnmounted(() => {
 .emall-channel-bar {
   background: #fff;
   border-bottom: 2px solid #0284c7;
+  position: relative;
+  z-index: 5;
 }
 .channel-inner {
   display: flex;
   align-items: center;
-  height: 42px;
+  height: 44px;
 }
 .category-header-tab {
   width: 200px;
   height: 100%;
+  flex-shrink: 0;
   background: linear-gradient(135deg, #0284c7, #0369a1);
   color: #fff;
   font-size: 15px;
@@ -1337,13 +1348,23 @@ onUnmounted(() => {
   padding-left: 16px;
   box-sizing: border-box;
   cursor: pointer;
+  white-space: nowrap;
 }
 .channel-nav-list {
   display: flex;
+  align-items: center;
   list-style: none;
   margin: 0;
-  padding: 0 20px;
-  gap: 25px;
+  padding: 0 16px;
+  gap: 20px;
+  flex: 1;
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.channel-nav-list::-webkit-scrollbar {
+  display: none;
 }
 .channel-item {
   font-size: 15px;
@@ -1351,12 +1372,20 @@ onUnmounted(() => {
   color: #334155;
   cursor: pointer;
   transition: color 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+  height: 44px;
+  line-height: 44px;
+  display: inline-flex;
+  align-items: center;
 }
 .channel-item:hover, .channel-item.active {
   color: #0284c7;
 }
 .channel-item.highlight-item {
   color: #f43f5e;
+  display: inline-flex;
+  align-items: center;
 }
 
 /* ================= 4. 首屏黄金三栏网格 ================= */
@@ -1647,99 +1676,134 @@ onUnmounted(() => {
 
 /* ================= 5. 限时秒杀专区 ================= */
 .emall-seckill-section {
-  margin-top: 20px;
+  margin-top: 24px;
   background: #fff;
-  border-radius: 6px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+  border-radius: var(--em-radius-lg);
+  box-shadow: var(--em-shadow-card);
   overflow: hidden;
-  border: 1px solid #e2e8f0;
+  border: 1px solid rgba(226, 232, 240, 0.85);
 }
 .seckill-header {
-  background: linear-gradient(90deg, #0284c7 0%, #0369a1 100%);
+  background: linear-gradient(135deg, #091224 0%, #0f2b48 55%, #0284c7 100%);
   color: #fff;
-  height: 50px;
+  height: 52px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
+  padding: 0 22px;
+  position: relative;
+  overflow: hidden;
+}
+.seckill-header::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 25%;
+  width: 140px;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+  transform: skewX(-25deg);
+  pointer-events: none;
 }
 .seckill-title-box {
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  gap: 12px;
 }
 .seckill-logo-text {
   font-size: 20px;
   font-weight: 900;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
 }
 .seckill-sub-title {
   font-size: 12px;
-  opacity: 0.9;
+  color: rgba(255, 255, 255, 0.8);
+  letter-spacing: 0.5px;
 }
 .seckill-countdown-box {
   display: flex;
   align-items: center;
   font-size: 13px;
   font-weight: bold;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  padding: 3px 10px;
+  border-radius: var(--em-radius-full);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.countdown-lead {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  margin-right: 4px;
 }
 .time-block {
-  background: #0f172a;
+  background: #090d16;
   color: #fff;
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 700;
   padding: 2px 6px;
-  border-radius: 3px;
-  margin: 0 3px;
+  border-radius: 4px;
+  margin: 0 2px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+  font-variant-numeric: tabular-nums;
 }
 .colon {
   color: #fff;
+  font-weight: bold;
 }
 .seckill-body {
-  padding: 15px;
+  padding: 16px 18px;
 }
 .seckill-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 12px;
+  gap: 14px;
 }
 .seckill-card {
   border: 1px solid #f1f5f9;
-  border-radius: 6px;
+  border-radius: var(--em-radius-md);
   padding: 10px;
+  background: #fff;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 .seckill-card:hover {
-  border-color: #0284c7;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.12);
+  border-color: rgba(2, 132, 199, 0.35);
+  transform: translateY(-4px);
+  box-shadow: var(--em-shadow-hover);
 }
 .seckill-img-wrap {
   width: 100%;
   height: 140px;
   position: relative;
   overflow: hidden;
-  border-radius: 4px;
+  border-radius: var(--em-radius-sm);
+  background: #f8fafc;
 }
 .seckill-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.3s;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .seckill-card:hover .seckill-img {
   transform: scale(1.06);
 }
 .seckill-badge {
   position: absolute;
-  top: 4px;
-  left: 4px;
-  background: #f43f5e;
+  top: 6px;
+  left: 6px;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
   color: #fff;
   font-size: 10px;
-  padding: 1px 5px;
-  border-radius: 2px;
-  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.35);
 }
 .seckill-name {
   font-size: 12px;
@@ -1748,6 +1812,10 @@ onUnmounted(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: color 0.2s;
+}
+.seckill-card:hover .seckill-name {
+  color: var(--em-primary);
 }
 .seckill-price-row {
   display: flex;
@@ -1756,9 +1824,11 @@ onUnmounted(() => {
   margin-top: 4px;
 }
 .price-now {
-  color: #f43f5e;
-  font-size: 16px;
-  font-weight: 900;
+  color: var(--em-danger);
+  font-size: 17px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.3px;
 }
 .price-origin {
   color: #94a3b8;
@@ -1774,13 +1844,14 @@ onUnmounted(() => {
 .prog-bar {
   flex: 1;
   height: 6px;
-  background: #e0f2fe;
-  border-radius: 3px;
+  background: #f1f5f9;
+  border-radius: 999px;
   overflow: hidden;
 }
 .prog-fill {
   height: 100%;
-  background: linear-gradient(90deg, #38bdf8, #0284c7);
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f97316 0%, #ef4444 100%);
 }
 .prog-text {
   font-size: 10px;
@@ -1915,18 +1986,19 @@ onUnmounted(() => {
 }
 .emall-product-card {
   background: #fff;
-  border-radius: 6px;
+  border-radius: var(--em-radius-lg);
   overflow: hidden;
   cursor: pointer;
-  border: 1px solid #e2e8f0;
-  transition: all 0.3s;
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  box-shadow: var(--em-shadow-card);
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
   flex-direction: column;
 }
 .emall-product-card:hover {
-  border-color: #0284c7;
-  transform: translateY(-4px);
-  box-shadow: 0 8px 20px rgba(2, 132, 199, 0.1);
+  border-color: rgba(2, 132, 199, 0.35);
+  transform: translateY(-5px);
+  box-shadow: var(--em-shadow-hover);
 }
 .img-wrapper {
   width: 100%;
@@ -1934,15 +2006,16 @@ onUnmounted(() => {
   background: #f8fafc;
   position: relative;
   overflow: hidden;
+  border-radius: var(--em-radius-lg) var(--em-radius-lg) 0 0;
 }
 .p-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.4s;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .emall-product-card:hover .p-img {
-  transform: scale(1.05);
+  transform: scale(1.06);
 }
 .no-p-img {
   height: 100%;
@@ -1959,19 +2032,21 @@ onUnmounted(() => {
   background: linear-gradient(135deg, #0ea5e9, #0284c7);
   color: #fff;
   font-size: 11px;
-  padding: 2px 6px;
-  border-radius: 3px;
+  padding: 2px 7px;
+  border-radius: 4px;
   font-weight: bold;
+  box-shadow: 0 2px 4px rgba(2, 132, 199, 0.25);
 }
 .tag-flash {
   position: absolute;
   top: 8px;
   right: 8px;
-  background: #f43f5e;
+  background: linear-gradient(135deg, #f43f5e, #e11d48);
   color: #fff;
   font-size: 10px;
-  padding: 2px 5px;
-  border-radius: 3px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(244, 63, 94, 0.25);
 }
 
 .p-info {
@@ -1983,7 +2058,9 @@ onUnmounted(() => {
 .p-price-row {
   display: flex;
   align-items: baseline;
-  color: #f43f5e;
+  color: var(--em-accent);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.2px;
 }
 .p-currency { font-size: 13px; font-weight: bold; margin-right: 1px; }
 .p-integer { font-size: 22px; font-weight: 900; }
@@ -2003,7 +2080,7 @@ onUnmounted(() => {
   transition: color 0.2s;
 }
 .emall-product-card:hover .p-title {
-  color: #0284c7;
+  color: var(--em-primary);
 }
 .title-tag-blue {
   background: #e0f2fe;
@@ -2029,18 +2106,19 @@ onUnmounted(() => {
   margin-top: 6px;
 }
 .badge-ship {
-  border: 1px solid #0284c7;
+  border: 1px solid rgba(2, 132, 199, 0.4);
+  background: rgba(2, 132, 199, 0.04);
   color: #0284c7;
   font-size: 10px;
-  padding: 0 4px;
-  border-radius: 2px;
+  padding: 1px 5px;
+  border-radius: 3px;
 }
 .badge-coupon {
   background: #e0f2fe;
   color: #0284c7;
   font-size: 10px;
-  padding: 0 4px;
-  border-radius: 2px;
+  padding: 1px 5px;
+  border-radius: 3px;
 }
 
 .p-footer {
@@ -2057,20 +2135,27 @@ onUnmounted(() => {
 }
 .add-cart-btn {
   background: #f0f9ff;
-  border: 1px solid #0284c7;
+  border: 1px solid #bae6fd;
   color: #0284c7;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s;
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.1);
+  transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .add-cart-btn:hover {
   background: #0284c7;
+  border-color: #0284c7;
   color: #fff;
+  transform: scale(1.12);
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
+}
+.add-cart-btn:active {
+  transform: scale(0.92);
 }
 
 /* 空商品提示 */

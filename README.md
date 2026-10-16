@@ -1,252 +1,250 @@
-# Emall Platform (全栈电商平台项目)
+# Emall Platform (E-MALL 全栈数字化电商平台)
 
 [![CI](https://github.com/Zhoubin601/Emall-Platform/actions/workflows/ci.yml/badge.svg)](https://github.com/Zhoubin601/Emall-Platform/actions/workflows/ci.yml)
 [![Security](https://github.com/Zhoubin601/Emall-Platform/actions/workflows/security.yml/badge.svg)](https://github.com/Zhoubin601/Emall-Platform/actions/workflows/security.yml)
 
 [📄 全业务功能与架构实践总结报告](PROJECT_PRACTICE_SUMMARY.md) | [🧪 自动化测试说明](TESTING.md)
 
-这是一个基于现代化技术栈构建的 B2C 全栈电商平台（包含前台商城、后台管理系统以及 Java 后端服务）。项目设计采用了前后端分离架构，提供了完整的商品购买、订单处理、后台管理等电商核心链路功能。
+**E-MALL** 是一个基于现代化技术栈自主构建的企业级 B2C 全栈电商平台，包含**前台买家商城 (`emall-client`)**、**中后台运营管理系统 (`emall-admin`)** 以及 **Spring Boot 核心业务服务端 (`mall-backend`)**。项目采用前后端分离架构，提供从商品浏览、多规格 SKU 选购、限时秒杀、购物车结算、订单履约与售后退款，到买家秀评价、实时在线客服及全域数据大屏的完整电商闭环。
+
+---
+
+## 🏗️ 系统总体架构 (System Architecture)
+
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           E-MALL 平台总体架构                            │
+├───────────────────────────────────┬─────────────────────────────────────┤
+│       前台商城 (emall-client)      │       后台管理系统 (emall-admin)      │
+│   Vue 3 + TS + Vite + Pinia       │   Vue 3 + TS + Vite + ECharts       │
+│   现代化商城/秒杀/多规格/在线客服   │   Bento 经营驾驶舱/商品/订单/RBAC   │
+├───────────────────────────────────┴─────────────────────────────────────┤
+│                         反向代理 / 路由接入层                            │
+│              Vite Dev Proxy (/api, /uploads) / Nginx Gateway            │
+├─────────────────────────────────────────────────────────────────────────┤
+│                        核心服务端 (mall-backend)                         │
+│   Java 21 + Spring Boot 3.2.5 + Spring Security + MyBatis-Plus 3.5.5    │
+│   JWT 无状态鉴权 │ 服务端可信计价 │ 原子库存防超卖 │ EasyExcel 报表导入导出│
+├───────────────────────────────────┬─────────────────────────────────────┤
+│       数据持久层 (MySQL 8.x)       │        分布式缓存与幂等锁 (Redis)   │
+│    InnoDB + Flyway (V0~V3) 迁移   │     会话验证码 / 热点缓存 / 订单幂等│
+└───────────────────────────────────┴─────────────────────────────────────┘
+```
 
 ---
 
 ## 🛠️ 技术栈 (Technology Stack)
 
-### 🚀 后端 (mall-backend)
+### 🚀 后端服务 (`mall-backend`)
 - **核心框架**: Java 21 + Spring Boot 3.2.5
-- **持久层框架**: MyBatis-Plus 3.5.5
-- **数据库**: MySQL 8.0
-- **缓存**: Redis
-- **Excel 处理**: Alibaba EasyExcel 3.3.2
+- **安全与鉴权**: Spring Security + JWT + BCrypt（支持买家、普通管理员、超级管理员三级 RBAC）
+- **持久层与迁移**: MyBatis-Plus 3.5.5 + Flyway 版本化数据库迁移 (`V0` ~ `V3`)
+- **数据库与缓存**: MySQL 8.0+ / Redis 7.0+
+- **邮件与报表**: Spring Mail (SMTP 587 STARTTLS 动态验证码) + Alibaba EasyExcel 3.3.2
+- **测试与质量门禁**: JUnit 5 + Mockito + Testcontainers + JaCoCo 覆盖率门禁
 - **容器化部署**: Docker & Docker Compose
 
-### 💻 前端商城 (emall-client)
-- **核心框架**: Vue 3 (Composition API)
-- **构建工具**: Vite
-- **开发语言**: TypeScript
-- **状态管理**: Pinia
-- **UI 组件库**: Element Plus
-- **网络请求**: Axios
+### 💻 前台买家商城 (`emall-client`)
+- **核心框架**: Vue 3 (Composition API) + TypeScript + Vite
+- **状态与路由**: Pinia + Vue Router 4（含登录态路由守卫）
+- **UI 与设计系统**: Element Plus（按需自动引入）+ Tech Sapphire Blue & Coral Orange 现代电商设计令牌 + 专属价格排印组件 (`EmPrice.vue`)
+- **网络通信**: Axios 统一拦截器 + Vite 代理转发
 
-### 📊 后端管理系统 (emall-admin)
-- **核心框架**: Vue 3 (Composition API)
-- **开发语言**: TypeScript
-- **构建工具**: Vite
-- **状态管理**: Pinia
-- **UI 组件库**: Element Plus
-- **图表展示**: ECharts
-- **网络请求**: Axios
+### 📊 后台运营管理系统 (`emall-admin`)
+- **核心框架**: Vue 3 (Composition API) + TypeScript + Vite
+- **数据可视化**: Apache ECharts（按需构建与 Rolldown 分块缓存，Bento Grid 全域运营驾驶舱）
+- **状态与权限**: Pinia + 角色级路由守卫（区分超级管理员 `role = 2` 与运营管理员 `role = 1`）
+- **UI 组件库**: Element Plus（按需自动引入）
+
+### 🧪 自动化测试与联调工具
+- **单元测试**: Vitest (`emall-client` & `emall-admin`) + JUnit 5 (`mall-backend`)
+- **端到端测试**: Playwright Chromium 真实浏览器冒烟测试 (`e2e/`)
+- **轻量联调**: 内置零依赖 Node.js 接口模拟服务 (`mock-server.js`) 与内存级 RESP 协议模拟服务 (`redis-mock.js`)
 
 ---
 
-## 📂 项目结构 (Project Structure)
+## 📂 项目目录结构 (Project Structure)
 
 ```text
 Emall-Platform/
-├── emall-client/        # 前台商城 (Web/H5 端) - 面向普通用户
-├── emall-admin/         # 后台管理系统 - 面向管理员和运营人员
-├── mall-backend/        # Java 服务端 - 核心业务逻辑与 API
-├── .gitignore           # 全局 Git 忽略配置文件
-└── README.md            # 项目说明文档
+├── emall-client/                # 前台买家商城 (Web/移动自适应，默认端口 5173)
+│   └── src/
+│       ├── components/          # 公共组件 (ClientHeader, EmPrice, UserCenterLayout 等)
+│       ├── router/              # 路由配置与鉴权守卫
+│       ├── stores/              # Pinia 状态管理 (user, cart)
+│       ├── utils/               # Axios 请求封装与本地存储工具
+│       └── views/               # 核心页面 (首页/详情/购物车/结算/订单/评价/个人中心等)
+├── emall-admin/                 # 后台运营管理系统 (默认端口 5174)
+│   └── src/
+│       ├── layout/              # 后台主布局与侧边导航
+│       ├── router/              # 后台路由与超管权限拦截
+│       ├── stores/              # 管理员登录态管理
+│       └── views/               # 业务模块 (驾驶舱/商品/分类/订单/评价/客服/轮播/公告/用户)
+├── mall-backend/                # Spring Boot Java 服务端 (默认端口 8080)
+│   ├── src/main/java/           # 控制器、服务层、安全配置、实体与 Mapper
+│   ├── src/main/resources/      # application.yml 与 Flyway SQL 迁移脚本 (V0~V3)
+│   ├── src/test/java/           # 单元测试与 Testcontainers 集成测试
+│   └── docker-compose.yml       # MySQL + Redis + Backend 容器编排配置
+├── e2e/                         # Playwright 端到端浏览器自动化测试套件
+├── mock-server.js               # 零外部依赖的全功能 API Mock 服务 (用于快速演示/离线联调)
+├── redis-mock.js                # 轻量级 Redis RESP 协议内存服务
+├── start-all.ps1 / start-all.bat# Windows 一键启动全栈服务脚本
+├── stop-all.ps1                 # Windows 一键停止所有服务脚本
+├── PROJECT_PRACTICE_SUMMARY.md  # 全业务功能与架构实践总结报告
+├── TESTING.md                   # 自动化测试执行指南
+└── README.md                    # 项目说明文档
 ```
 
 ---
 
-## ✨ 核心功能模块 (Features)
+## ✨ 核心功能模块 (Core Features)
 
-### 🛒 前台商城功能 (Client)
-- **用户系统**: 注册、登录、个人信息修改、收货地址管理。
-- **商品浏览**: 商品首页展示、轮播图广告、商品分类、商品搜索、商品详情查看。
-- **购物车与下单**: 加入购物车、SKU 选择、订单结算、模拟支付。
-- **订单管理**: 订单列表展示、订单状态跟踪、订单取消。
-- **互动与营销**: 优惠券领取与使用、商品收藏、商品评价系统、站内通知查看。
+### 🛒 前台买家商城 (`emall-client`)
+- **用户认证与安全**: 账号登录、邮箱验证码注册（QQ 邮箱 SMTP 587 STARTTLS 实发）、找回/重置密码、个人资料更新、多收货地址管理与默认地址设置。
+- **沉浸式导购首页**: 顶部站内公告轮播与弹窗、两级商品类目树导航、热搜词榜单、大促轮播海报、限时秒杀倒计时专区、多维商品筛选与排序。
+- **商品详情与多规格 SKU**: 支持多维度规格（如颜色、内存、版本）动态切换，实时联动对应 SKU 的专属售价、划线原价与剩余库存，支持商品收藏与买家秀图文评价浏览。
+- **购物车与可信结算**: 本地持久化购物车、全选/单选动态计价、批量校验实时库存与价格；结算页支持满减优惠券智能匹配折抵与模拟收银台（支付宝/微信扫码支付）。
+- **订单全生命周期与售后**: 订单多状态跟踪（待付款 $\rightarrow$ 待发货 $\rightarrow$ 待收货 $\rightarrow$ 已完成 / 已取消）、顺丰物流轨迹时间线查看、买家发起退款申请、确认收货及多星级晒图评价。
+- **实时在线智能客服**: 全站常驻悬浮客服入口，抽屉式实时对话窗口，支持消息发送与高可用短轮询同步。
 
-### ⚙️ 后台管理系统 (Admin)
-- **数据看板**: 数据大屏展示 (ECharts)，涵盖销售额、订单量、用户活跃度等关键指标统计。
-- **商品管理**: 商品发布、上下架、SKU 管理、商品分类管理、商品数据 Excel 导入/导出。
-- **订单管理**: 订单审核、发货处理、订单详情查看。
-- **营销管理**: 轮播广告位配置、优惠券发放管理。
-- **用户与反馈管理**: 用户列表管理、商品评价审核、用户反馈管理、系统公告发布。
+### ⚙️ 后台运营管理系统 (`emall-admin`)
+- **全域数据运营驾驶舱**: 采用 Bento Grid 布局与 ECharts 图表，实时展示累计 GMV、今日实时交易额、累计订单流转量、平台有效买家数、7/30/季度销售走势曲线、订单状态环形分布、TOP 5 爆款排行及微服务集群健康态势。
+- **商品与 SKU 规格中心**: 商品上架/下架、限时秒杀活动配置（特惠价、秒杀库存、活动时段）、多规格 SKU 矩阵维护、库存一键校准，以及基于 EasyExcel 的商品数据批量导入与导出。
+- **类目树编排**: 一级核心大类与二级垂直子类树形结构展示、大类覆盖率统计、快捷新增子类与层级过滤。
+- **订单履约与售后工作台**: 全渠道订单检索、多状态筛选、订单详情抽屉、一键发货出库、退款申请审核（同意退款自动回补库存 / 驳回申请）及订单报表导出。
+- **互动、内容与客服中心**: 买家评价星级筛选与合规巡检、在线客服实时会话工作台、用户意见反馈工单回复、首页营销轮播图配置及全站公告发布。
+- **多角色用户与权限管控**: 仅超级管理员 (`role = 2`) 可访问用户与权限管理模块，支持新增管理员/买家、角色分配与违规账号封禁。
 
-### 🔐 安全与订单一致性
-- **认证授权**: Spring Security + JWT + BCrypt，区分买家与管理员权限，并校验用户资源归属。
-- **可信计价**: 下单金额、促销价格和优惠券均由服务端重新校验与计算，不信任客户端价格。
-- **库存安全**: 使用数据库条件更新原子扣减 SKU 库存，取消订单或退款成功时按状态机恢复库存。
-- **防重复下单**: 使用 Redis 幂等键拦截重复提交，并通过受控状态机限制订单状态流转。
-
-### ⚡ 前端性能
-- **组件按需加载**: Element Plus 组件与指令按页面自动引入，避免全量注册 UI 组件库。
-- **图表按需构建**: ECharts 仅注册折线图、柱状图、饼图及必要组件，并使用 Rolldown 分块缓存。
+### 🔐 服务端安全与交易一致性保障 (`mall-backend`)
+- **认证与越权防护**: 基于 Spring Security + JWT 区分匿名接口、买家接口、普通管理员接口 (`ROLE_ADMIN`) 与超级管理员接口 (`ROLE_SUPER_ADMIN`)，严格校验订单、地址、收藏、评价等资源的用戸归属权，防止水平与垂直越权。
+- **服务端可信二次计价**: 下单接口忽略客户端传入的价格字段，由服务端根据数据库实时商品/SKU 价格、活动有效期、秒杀库存及优惠券门槛重新计算应付金额。
+- **高并发原子防超卖**: 采用数据库条件更新（`UPDATE ... SET stock = stock - count WHERE id = ? AND stock >= count`）原子扣减 SKU 与秒杀库存；当秒杀库存售罄时自动熔断恢复日常价，订单取消或退款通过时按状态机精准回滚库存与优惠券。
+- **防重复提交与状态机约束**: 结合 Redis 幂等键拦截重复下单请求，并通过 `OrderStatusPolicy` 严格限制订单状态合法流转路径。
 
 ---
 
-## 🚀 快速启动 (Quick Start)
+## 🚀 快速启动指南 (Quick Start)
 
-### 1. 环境准备
-确保您的开发环境中安装了以下软件：
-- **Docker & Docker Compose** (推荐，用于一键启动后端、MySQL 和 Redis)
-- **Node.js 22+**（用于运行前端项目）
-- **Java 21 与 Maven 3.9+**（仅本地运行、测试后端时需要）
-- **Git** (版本控制)
+本项目支持 **Docker 容器化启动**、**Windows 一键脚本启动** 以及 **零依赖 Mock 演示启动** 三种模式。
 
-### 2. 获取代码
-```bash
-git clone https://github.com/Zhoubin601/Emall-Platform.git
-cd Emall-Platform
-```
+### 方式一：Docker Compose 启动后端 + 本地启动前端（推荐生产/标准开发）
 
-### 3. 启动后端服务 (Docker 方式)
-进入 `mall-backend` 目录。Docker Compose 会启动 MySQL、Redis 和后端；后端在数据库健康后启动，并由 Flyway 自动创建或升级表结构。
+#### 1. 环境要求
+- **Docker & Docker Compose v2**
+- **Node.js 22+**（运行前端与自动化测试）
+- **Java 21 & Maven 3.9+**（仅本地编译或运行后端测试时需要）
 
+#### 2. 启动后端、MySQL 与 Redis
 ```bash
 cd mall-backend
-# 创建仅供本机使用的环境变量文件
+# 复制环境变量模板并按需修改 DB_PASSWORD 和不少于 32 字符的 JWT_SECRET
 cp .env.example .env
-# 编辑 .env，至少填写 DB_PASSWORD 和长度不少于 32 字符的 JWT_SECRET
 
-# 构建并启动 MySQL、Redis 与后端
+# 构建并后台启动 MySQL、Redis 与 Spring Boot 服务
 docker compose up -d --build
 
-# 确认三个服务均为 running/healthy
+# 查看服务运行状态与 Flyway 迁移日志
 docker compose ps
-
-# 查看后端启动与 Flyway 迁移日志
 docker compose logs -f backend
 ```
-> **注意**：`.env` 包含敏感配置，已被 Git 忽略，禁止提交到仓库。首次启动会拉取镜像并执行 `V0 → V1` 数据库迁移，可能需要几分钟。后端默认运行在 `8080` 端口。
+> 首次启动时，Spring Boot 会自动执行 `mall-backend/src/main/resources/db/migration` 下的 `V0 ~ V3` 数据库迁移脚本，默认监听 `http://localhost:8080`。
 
-### 4. 启动前台商城项目 (Client)
+#### 3. 启动前台商城与管理后台
 ```bash
-cd ../emall-client
-# 按锁文件安装依赖
+# 启动前台商城 (http://localhost:5173)
+cd emall-client
 npm ci
-# 启动开发服务器
+npm run dev
+
+# 新开终端启动管理后台 (http://localhost:5174)
+cd emall-admin
+npm ci
 npm run dev
 ```
 
-### 5. 启动后台管理系统 (Admin)
+> **Windows 快捷启动**：在项目根目录下可直接双击或运行 `.\start-all.bat`（基于 Docker Compose）或 `.\start-all.ps1`（基于本机 MySQL/Redis/Java 环境），停止服务可运行 `.\stop-all.ps1`。
+
+---
+
+### 方式二：零依赖快速体验模式（Node Mock Server）
+
+如果本机未安装 Docker、MySQL 或 Java，可直接启动根目录下的轻量级全功能 Mock 服务，立即体验前后端完整交互：
+
 ```bash
-cd ../emall-admin
-# 按锁文件安装依赖
-npm ci
-# 启动开发服务器
-npm run dev
+# 1. 启动 8080 端口的全功能 API Mock 服务
+node mock-server.js
+
+# 2. 启动前台商城 (http://localhost:5173)
+npm --prefix emall-client run dev
+
+# 3. 启动管理后台 (http://localhost:5174)
+npm --prefix emall-admin run dev
 ```
 
 ---
 
-## 🗄️ 数据库部署
+## 🗄️ 数据库版本化迁移 (Flyway Migrations)
 
-### 推荐方式：Docker Compose + Flyway
+项目数据库结构由 Flyway 自动管理，迁移脚本位于 `mall-backend/src/main/resources/db/migration/`：
 
-数据库部署不再依赖 mysqldump。MySQL 第一次创建空数据库后，Spring Boot 会自动执行 `mall-backend/src/main/resources/db/migration` 中的版本化迁移：
+| 版本 | 脚本文件 | 说明 |
+| :---: | :--- | :--- |
+| `V0` | `V0__create_base_schema.sql` | 创建 16 张核心业务基础表（用户、商品、SKU、分类、订单、评价、优惠券、客服等） |
+| `V1` | `V1__add_order_coupon_and_constraints.sql` | 增加订单优惠券抵扣字段、订单号唯一约束及优惠券查询索引 |
+| `V2` | `V2__enforce_unique_user_email.sql` | 清理重复邮箱并添加用户邮箱唯一性约束 |
+| `V3` | `V3__add_promo_stock_and_sku_id.sql` | 增加商品限时秒杀库存 (`promo_stock`) 与订单项 `sku_id` 字段 |
 
-- `V0__create_base_schema.sql`：创建 16 张基础业务表。
-- `V1__add_order_coupon_and_constraints.sql`：增加订单优惠券字段、订单号唯一索引和优惠券查询索引。
-- `flyway_schema_history`：记录已经执行的版本和校验和；同一迁移只执行一次。
-
-Compose 环境中的关键配置如下：
-
-| 配置 | 默认值/位置 | 说明 |
-| --- | --- | --- |
-| 数据库名 | `emall_db` | MySQL 容器首次启动时创建 |
-| 宿主机端口 | `3307` | 本机工具连接使用 `localhost:3307` |
-| 容器内端口 | `3306` | 后端使用 `mysql:3306` 连接 |
-| 数据目录 | `mall-backend/mysql-data` | 持久化数据库文件，已被 Git 忽略 |
-| `DB_PASSWORD` | `.env` 必填 | MySQL root 密码及后端数据库密码 |
-| `JWT_SECRET` | `.env` 必填 | 至少 32 字符，生产环境必须随机生成 |
-
-可以进入 MySQL 验证迁移结果；`-p` 会交互式询问密码，不要把密码直接写进命令或提交到仓库：
-
-```bash
-docker compose exec mysql mysql -uroot -p emall_db
-```
-
-进入 MySQL 后执行：
-
-```sql
-SHOW TABLES;
-SELECT installed_rank, version, description, success
-FROM flyway_schema_history
-ORDER BY installed_rank;
-```
-
-正常情况下应看到 `V0` 和 `V1` 均成功，且业务表共 16 张。
-
-### 部署到已有或外部 MySQL
-
-1. 先备份现有数据库，并确认目标地址不是生产库的误操作副本。
-2. 创建空数据库：
-
-   ```sql
-   CREATE DATABASE emall_db
-     CHARACTER SET utf8mb4
-     COLLATE utf8mb4_unicode_ci;
-   ```
-
-3. 为后端设置 `DB_URL`、`DB_USERNAME`、`DB_PASSWORD`、`REDIS_HOST` 和 `REDIS_PORT`。
-4. 启动后端。Flyway 会在空库执行全部迁移；对于由旧版 dump 创建且尚无迁移历史的数据库，会先记录基线版本 `0`，再执行 `V1`。
-5. 检查 `flyway_schema_history` 后再开放流量。已经应用过的迁移文件禁止直接修改，应新增更高版本的迁移继续升级。
-
-外部数据库连接示例：
-
-```bash
-export DB_URL='jdbc:mysql://db.example.com:3306/emall_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai'
-export DB_USERNAME='emall_app'
-export DB_PASSWORD='replace-with-a-secret'
-export REDIS_HOST='redis.example.com'
-export REDIS_PORT='6379'
-```
-
-### 创建首个管理员
-
-Flyway 只创建表结构，不写入固定账号或明文密码。首次部署后：
-
-1. 在前台注册一个普通账号，确保密码由应用使用 BCrypt 保存。
-2. 进入 MySQL，将该账号提升为管理员：
-
+### 创建首个管理员账号
+Flyway 仅初始化表结构，不内置固定明文密码。首次在真实数据库部署后：
+1. 在前台商城 (`http://localhost:5173/login`) 注册一个普通账号（密码经 BCrypt 加密存储）。
+2. 在 MySQL 中将该账号提升为管理员（`role = 1` 为普通管理员，`role = 2` 为超级管理员）：
    ```sql
    UPDATE sys_user
-   SET role = 1
+   SET role = 2
    WHERE username = 'your-admin-username';
    ```
 
-3. 确认只更新一行，然后使用该账号登录管理后台。不要从旧 dump 导入固定管理员密码。
-
-### 数据持久化与重建提醒
-
-- `docker compose down` 只停止容器，不会删除 `mysql-data` 中的数据。
-- 若要重建空库，请先备份，再将 `mysql-data` 移到安全的备份目录后重新启动；不要直接删除尚未确认的数据库目录。
-- 仓库中的历史 dump 不再由 Compose 自动导入，也不应作为生产部署来源。
-
 ---
 
-## ✅ 自动化质量门禁
+## ✅ 自动化测试与质量门禁 (Testing & CI)
 
-GitHub Actions 会在主分支提交和 Pull Request 上自动执行以下检查：
+项目配置了完善的单元测试、集成测试、E2E 浏览器冒烟测试及 GitHub Actions 持续集成流水线：
 
-- Maven `verify`：编译后端、运行测试、执行订单服务覆盖率门禁并生成可执行 JAR。
-- Testcontainers：在隔离的真实 MySQL 8.0 与 Redis 7.0 中验证并发扣库存、事务回滚和幂等提交。
-- JaCoCo：订单服务行覆盖率不得低于 90%，分支覆盖率不得低于 65%，CI 会保留 HTML 报告。
-- 两个 Vue 应用执行 `npm ci` 和生产构建。
-- Gitleaks 扫描提交历史中的密钥泄露。
-- Pull Request 依赖审查阻止引入高危漏洞。
-- Dependabot 每周检查 Maven、npm 和 GitHub Actions 依赖更新。
-
-提交前可在项目根目录运行相同的本地检查：
-
+### 1. 前端单元测试与生产构建
 ```bash
-cd mall-backend && mvn --batch-mode --no-transfer-progress verify
-cd ../emall-client && npm ci && npm run build
-cd ../emall-admin && npm ci && npm run build
+# 运行前台与管理后台全部 Vitest 单元测试
+npm test
+
+# 分别构建前台与管理后台生产包 (含 TypeScript 类型检查)
+npm --prefix emall-client run build
+npm --prefix emall-admin run build
 ```
 
----
+### 2. Playwright 端到端浏览器测试
+```bash
+# 首次运行需安装 Chromium 浏览器内核
+npx playwright install chromium
 
-## 🔑 账号说明
+# 运行端到端冒烟测试 (自动拉起双端开发服务器并验证核心登录与权限流)
+npm run test:e2e
 
-项目不在文档或代码中提供固定明文密码。前台账号可通过注册流程创建；管理员账号应根据本地初始化数据配置，并在首次使用后更换密码。
+# 一键运行全部前端单元测试 + E2E 测试
+npm run test:all
+```
+
+### 3. 后端单元测试与覆盖率校验
+```bash
+cd mall-backend
+
+# 仅运行单元测试 (无需启动 Docker)
+mvn test -Dtest="!*IntegrationTest"
+
+# 完整验证 (含 Testcontainers 真实 MySQL/Redis 并发与幂等集成测试 + JaCoCo 覆盖率门禁)
+mvn --batch-mode --no-transfer-progress verify
+```
 
 ---
 
 ## 📄 许可证 (License)
+
 本项目遵循 [MIT](LICENSE) 开源许可证。

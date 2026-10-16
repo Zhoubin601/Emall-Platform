@@ -132,10 +132,10 @@ const submitComment = async () => {
   try {
     if (isEdit.value) {
       await request.put('/comment/update', submitData)
-      ElMessage.success('🎉 评价已成功修改！')
+      ElMessage.success('评价已成功修改！')
     } else {
       await request.post('/comment/add', submitData)
-      ElMessage.success('🎉 评价发表成功！感谢您对 E-MALL 的支持')
+      ElMessage.success('评价发表成功！感谢您对 E-MALL 的支持')
     }
     router.push('/orders')
   } catch (e) {

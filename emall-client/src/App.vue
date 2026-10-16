@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, nextTick, onMounted, onUnmounted } from 'vue'
-import { ChatDotRound, Position } from '@element-plus/icons-vue'
+import { ChatDotRound, Position, Top } from '@element-plus/icons-vue'
 import { useUserStore } from './stores/user'
 import { ElMessage } from 'element-plus'
 import request from './utils/request'
@@ -12,6 +12,15 @@ const router = useRouter()
 const chatDrawerVisible = ref(false)
 const chatInput = ref('')
 const isSending = ref(false)
+const showBackTop = ref(false)
+
+const handleScroll = () => {
+  showBackTop.value = window.scrollY > 300
+}
+
+const scrollToTop = () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
 
 // ✨ 聊天核心状态
 const chatList = ref<any[]>([])
@@ -24,10 +33,12 @@ const handleOpenCustomerService = () => {
 
 onMounted(() => {
   window.addEventListener('open-customer-service', handleOpenCustomerService)
+  window.addEventListener('scroll', handleScroll)
 })
 
 onUnmounted(() => {
   window.removeEventListener('open-customer-service', handleOpenCustomerService)
+  window.removeEventListener('scroll', handleScroll)
   if (pollTimer) clearInterval(pollTimer)
 })
 
@@ -117,11 +128,25 @@ const sendMessage = async () => {
   <div id="app-wrapper">
     <router-view />
 
-    <div class="global-chat-widget" @click="openChat">
-      <div class="chat-btn glass-effect">
-        <el-icon size="28" color="#0ea5e9"><ChatDotRound /></el-icon>
+    <!-- 悬浮功能组件区：回到顶部与联系客服 -->
+    <div class="global-floating-bar">
+      <!-- 回到顶部按钮 -->
+      <transition name="el-fade-in">
+        <div v-show="showBackTop" class="floating-item back-top-widget" @click="scrollToTop">
+          <div class="float-btn glass-effect">
+            <el-icon size="22" color="#0284c7"><Top /></el-icon>
+          </div>
+          <div class="float-tooltip glass-effect">回到顶部</div>
+        </div>
+      </transition>
+
+      <!-- 联系客服按钮 -->
+      <div class="floating-item global-chat-widget" @click="openChat">
+        <div class="float-btn chat-btn glass-effect">
+          <el-icon size="26" color="#0ea5e9"><ChatDotRound /></el-icon>
+        </div>
+        <div class="float-tooltip chat-tooltip glass-effect">在线客服</div>
       </div>
-      <div class="chat-tooltip glass-effect">联系客服</div>
     </div>
 
     <el-drawer
@@ -173,13 +198,14 @@ const sendMessage = async () => {
 <style>
 /* 基础与悬浮按钮样式保留不变 */
 body { margin: 0; padding: 0; background-color: #f8fafc; font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif; }
-.glass-effect { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.8); box-shadow: 0 8px 32px rgba(14, 165, 233, 0.15); }
-.global-chat-widget { position: fixed; bottom: 40px; right: 40px; z-index: 9999; display: flex; align-items: center; gap: 15px; cursor: pointer; animation: floatUpDown 3s ease-in-out infinite; }
-@keyframes floatUpDown { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-.chat-btn { width: 60px; height: 60px; border-radius: 50%; display: flex; justify-content: center; align-items: center; transition: all 0.3s; }
-.global-chat-widget:hover .chat-btn { transform: scale(1.1); background: #e0f2fe; }
-.chat-tooltip { padding: 8px 15px; border-radius: 20px; font-size: 13px; font-weight: bold; color: #0284c7; opacity: 0; transform: translateX(10px); transition: all 0.3s; pointer-events: none; }
-.global-chat-widget:hover .chat-tooltip { opacity: 1; transform: translateX(0); }
+.glass-effect { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.9); box-shadow: 0 8px 32px rgba(14, 165, 233, 0.15); }
+.global-floating-bar { position: fixed; bottom: 36px; right: 36px; z-index: 9999; display: flex; flex-direction: column; align-items: flex-end; gap: 14px; }
+.floating-item { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+.float-btn { width: 54px; height: 54px; border-radius: 50%; display: flex; justify-content: center; align-items: center; transition: all 0.3s; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); }
+.floating-item:hover .float-btn { transform: scale(1.1); background: #f0f9ff; }
+.float-tooltip { padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; color: #0284c7; opacity: 0; transform: translateX(10px); transition: all 0.3s; pointer-events: none; white-space: nowrap; }
+.floating-item:hover .float-tooltip { opacity: 1; transform: translateX(0); }
+.back-top-widget .float-btn { background: #ffffff; border: 1px solid #e2e8f0; }
 
 /* ✨ 全新聊天抽屉专属样式 */
 .cute-chat-drawer .el-drawer__header { margin-bottom: 0; padding: 20px; font-weight: bold; color: #0369a1; border-bottom: 1px solid #e0f2fe; background: #f0f9ff; }

@@ -69,7 +69,7 @@ const handleRegister = async () => {
   loading.value = true
   try {
     await request.post('/user/register', regForm)
-    ElMessage.success('🎉 注册成功！已为您自动切换至登录页面')
+    ElMessage.success('注册成功！已为您自动切换至登录页面')
     viewMode.value = 'login'
     loginForm.username = regForm.username
     loginForm.password = ''

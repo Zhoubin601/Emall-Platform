@@ -390,9 +390,9 @@ onMounted(() => {
 /* 购物车主卡片 */
 .cart-card {
   background: #ffffff;
-  border-radius: 20px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  border-radius: var(--em-radius-lg);
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  box-shadow: var(--em-shadow-card);
   overflow: hidden;
 }
 
@@ -510,7 +510,7 @@ onMounted(() => {
 }
 
 .item-title:hover {
-  color: #f43f5e;
+  color: var(--em-accent);
 }
 
 .item-tags {
@@ -577,7 +577,8 @@ onMounted(() => {
 .subtotal-cell {
   font-size: 18px;
   font-weight: 900;
-  color: #f43f5e;
+  color: var(--em-accent);
+  font-variant-numeric: tabular-nums;
 }
 
 /* 底部结算汇总条 */
@@ -585,13 +586,15 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 28px;
-  background: #ffffff;
-  border-top: 1px solid #e2e8f0;
+  padding: 16px 32px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(226, 232, 240, 0.85);
   position: sticky;
   bottom: 0;
   z-index: 10;
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 -6px 20px rgba(15, 23, 42, 0.05);
+  border-radius: 0 0 var(--em-radius-lg) var(--em-radius-lg);
 }
 
 .summary-left {
@@ -603,7 +606,7 @@ onMounted(() => {
 }
 
 .checked-num {
-  color: #f43f5e;
+  color: var(--em-accent);
   font-size: 15px;
 }
 
@@ -637,31 +640,38 @@ onMounted(() => {
 .total-curr {
   font-size: 18px;
   font-weight: bold;
-  color: #f43f5e;
+  color: var(--em-accent);
   margin-left: 4px;
 }
 
 .total-amount {
   font-size: 30px;
   font-weight: 900;
-  color: #f43f5e;
+  color: var(--em-accent);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.5px;
   line-height: 1;
 }
 
 .checkout-btn {
-  background: linear-gradient(135deg, #0284c7, #0369a1);
+  background: linear-gradient(135deg, var(--em-accent), var(--em-accent-hover));
   border: none;
   font-size: 16px;
   font-weight: bold;
   height: 48px;
-  padding: 0 36px;
+  padding: 0 38px;
   border-radius: 24px;
-  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.3);
-  transition: all 0.2s;
+  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.35);
+  transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  letter-spacing: 0.5px;
 }
 
 .checkout-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(2, 132, 199, 0.4);
+  box-shadow: 0 8px 22px rgba(249, 115, 22, 0.45);
+}
+
+.checkout-btn:active {
+  transform: scale(0.98);
 }
 </style>

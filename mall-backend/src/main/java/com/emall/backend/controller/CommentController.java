@@ -129,7 +129,7 @@ public class CommentController {
         }
         return "评价删除成功";
     }
-    @PostMapping("/update")
+    @RequestMapping(value = "/update", method = {RequestMethod.POST, RequestMethod.PUT})
     public String update(@RequestBody Comment comment, Authentication authentication) {
         validateCommentBody(comment);
         Comment existing = commentMapper.selectById(comment.getId());

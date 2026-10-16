@@ -63,8 +63,9 @@ test('管理员可以登录并看到看板数据', async ({ page }) => {
   await page.getByRole('button', { name: '安全登录' }).click()
 
   await expect(page).toHaveURL(/\/dashboard$/)
-  await expect(page.getByText('总买家数')).toBeVisible()
-  await expect(page.locator('.metric-info .value').first()).toHaveText('12')
+  const userCard = page.locator('.metric-card, .kpi-card').filter({ hasText: /总买家数|平台有效买家数/ })
+  await expect(userCard).toBeVisible()
+  await expect(userCard.locator('.value, .kpi-value')).toContainText('12')
   await expect.poll(() => page.evaluate(() => localStorage.getItem('admin-token')))
     .toBe('admin-test-token')
 })
@@ -88,7 +89,7 @@ test('用户和分类表单不使用已弃用的单选框 API', async ({ page })
   await expect(page.getByRole('radio', { name: '普通买家' })).toBeVisible()
 
   await page.goto('/categories')
-  await page.getByRole('button', { name: '新增分类' }).click()
+  await page.getByRole('button', { name: /新增分类|新增商品分类/ }).click()
   await expect(page.getByRole('radio', { name: '一级大类' })).toBeVisible()
 
   expect(radioWarnings).toEqual([])

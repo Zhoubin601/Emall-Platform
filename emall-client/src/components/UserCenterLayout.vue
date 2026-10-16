@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { User, Location, Star, ChatLineSquare, ShoppingBag, ArrowRight } from '@element-plus/icons-vue'
+import { User, Location, Star, ChatLineSquare, ShoppingBag, ArrowRight, Medal } from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/user'
 import ClientHeader from './ClientHeader.vue'
 import ClientFooter from './ClientFooter.vue'
@@ -72,7 +72,8 @@ const safeAvatar = computed(() => {
             </div>
             <div class="uc-name">{{ userStore.userInfo?.nickname || userStore.userInfo?.username || 'E-MALL 会员' }}</div>
             <div class="uc-vip-badge">
-              <span>💎 VIP 尊享会员</span>
+              <el-icon class="vip-icon" style="margin-right: 4px;"><Medal /></el-icon>
+              <span>VIP 尊享会员</span>
             </div>
           </div>
 

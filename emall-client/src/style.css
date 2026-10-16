@@ -1,11 +1,156 @@
+/* ============================================================
+   E-MALL Modern Design Tokens (Based on UI/UX Pro Max)
+   ============================================================ */
+
+:root {
+  /* 品牌主色系: Tech Sapphire Blue */
+  --em-primary: #1e40af;
+  --em-primary-hover: #1d4ed8;
+  --em-primary-active: #172554;
+  --em-primary-light: #eff6ff;
+  --em-primary-border: #bfdbfe;
+
+  /* 交易转化焦点色: Vibrant Coral / Orange (用于价格、立即抢购、高优引导) */
+  --em-accent: #f97316;
+  --em-accent-hover: #ea580c;
+  --em-accent-active: #c2410c;
+  --em-accent-light: #fff7ed;
+  --em-accent-border: #fed7aa;
+
+  /* 紧急 / 秒杀色: Crimson Red */
+  --em-danger: #e11d48;
+  --em-danger-hover: #be123c;
+  --em-danger-light: #fff1f2;
+
+  /* 成功色: Emerald */
+  --em-success: #059669;
+  --em-success-light: #ecfdf5;
+
+  /* 文字层级: High-contrast Slate Hierarchy */
+  --em-text-primary: #0f172a;    /* 标题、核心主文案 (深青黑，替代纯黑) */
+  --em-text-secondary: #475569;  /* 正文说明、副标题 */
+  --em-text-tertiary: #64748b;   /* 辅助信息、小标签 */
+  --em-text-muted: #94a3b8;      /* 占位符、失效态 */
+
+  /* 背景与表面: Pure White Cards on Soft Slate White */
+  --em-bg-page: #f8fafc;
+  --em-bg-card: #ffffff;
+  --em-bg-surface: #f1f5f9;
+
+  /* 边框体系 */
+  --em-border: #e2e8f0;
+  --em-border-subtle: #f1f5f9;
+  --em-border-focus: #3b82f6;
+
+  /* 圆角规范 */
+  --em-radius-xs: 4px;
+  --em-radius-sm: 8px;
+  --em-radius-md: 12px;
+  --em-radius-lg: 16px;
+  --em-radius-xl: 24px;
+  --em-radius-full: 9999px;
+
+  /* 阴影规范 (Soft Diffused Layering) */
+  --em-shadow-xs: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
+  --em-shadow-sm: 0 2px 8px -1px rgba(15, 23, 42, 0.06);
+  --em-shadow-card: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
+  --em-shadow-hover: 0 12px 30px -4px rgba(15, 23, 42, 0.12);
+  --em-shadow-popover: 0 20px 40px -8px rgba(15, 23, 42, 0.16);
+
+  /* 缓动动效 */
+  --em-ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --em-transition-fast: 0.15s ease;
+  --em-transition-normal: 0.25s var(--em-ease-spring);
+  --em-transition-smooth: 0.35s var(--em-ease-spring);
+
+  /* Element Plus 核心颜色对齐 */
+  --el-color-primary: #0ea5e9;
+  --el-color-primary-light-3: #7dd3fc;
+  --el-color-primary-light-5: #bae6fd;
+  --el-color-primary-light-7: #e0f2fe;
+  --el-color-primary-light-9: #f0f9ff;
+  --el-color-primary-dark-2: #0284c7;
+}
+
 html, body, #app {
   margin: 0;
   padding: 0;
   height: 100%;
   width: 100%;
-  background-color: #f9fafb; /* 给前台一个非常浅的灰白色背景，凸显商品卡片 */
+  background-color: var(--em-bg-page);
+  color: var(--em-text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
-a { text-decoration: none; }
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* ============================================================
+   电商级价格排印组件样式 (Price Typography System)
+   ============================================================ */
+.em-price {
+  display: inline-flex;
+  align-items: baseline;
+  color: var(--em-accent);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.em-price .currency {
+  font-size: 13px;
+  font-weight: 600;
+  margin-right: 2px;
+}
+
+.em-price .integer {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+.em-price .decimal {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.em-price .origin-price {
+  margin-left: 6px;
+  font-size: 12px;
+  color: var(--em-text-muted);
+  text-decoration: line-through;
+  font-weight: 400;
+}
+
+/* 价格尺码阶梯 */
+.em-price.em-price-sm .currency { font-size: 11px; }
+.em-price.em-price-sm .integer { font-size: 16px; }
+.em-price.em-price-sm .decimal { font-size: 11px; }
+
+.em-price.em-price-lg .currency { font-size: 15px; }
+.em-price.em-price-lg .integer { font-size: 28px; }
+.em-price.em-price-lg .decimal { font-size: 16px; }
+
+.em-price.em-price-xl .currency { font-size: 18px; }
+.em-price.em-price-xl .integer { font-size: 36px; }
+.em-price.em-price-xl .decimal { font-size: 20px; }
+
+.em-price.em-price-danger {
+  color: var(--em-danger);
+}
+
+/* 按钮微下沉反馈 */
+button.el-button:not(.is-disabled):active {
+  transform: scale(0.98);
+  transition: transform 0.08s ease;
+}
+
 .manage-card {
   display: flex;
   align-items: center;
@@ -13,10 +158,12 @@ a { text-decoration: none; }
   border: 2px dashed #cbd5e1 !important;
   background: rgba(241, 245, 249, 0.5) !important;
 }
+
 .manage-content {
   text-align: center;
   color: #64748b;
 }
+
 .manage-card:hover {
   border-color: #38bdf8 !important;
   color: #38bdf8;

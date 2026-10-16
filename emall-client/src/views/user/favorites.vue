@@ -19,7 +19,8 @@ const fetchFavorites = async () => {
   loading.value = true
   try {
     const res: any = await request.get('/favorite/list', { params: { userId: userStore.userInfo.id } })
-    products.value = res || []
+    const list = Array.isArray(res) ? res : (res?.data || res?.records || [])
+    products.value = Array.isArray(list) ? list : []
   } finally {
     loading.value = false
   }

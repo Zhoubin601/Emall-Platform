@@ -56,7 +56,7 @@ const handleSave = async () => {
     await request.put('/user/update', updateData) 
     userStore.setUser({ ...userStore.userInfo, ...updateData })
     
-    ElMessage.success('🎉 个人资料更新成功！')
+    ElMessage.success('个人资料更新成功！')
     form.password = '' 
   } catch (e) {
     ElMessage.error('保存失败，请检查网络')

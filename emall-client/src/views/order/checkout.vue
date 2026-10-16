@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { Location, Plus, Check, Ticket, Wallet } from '@element-plus/icons-vue'
+import { Location, Plus, Check, Ticket, Wallet, Lightning } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { useCartStore } from '../../stores/cart'
 import { useUserStore } from '../../stores/user'
@@ -205,7 +205,7 @@ const handlePaid = async () => {
   if (!currentOrderId.value) return
   try {
     await request.put(`/order/status/${currentOrderId.value}/1`)
-    ElMessage.success('🎉 支付成功，顺丰仓配已开始为您打包拣货！')
+    ElMessage.success('支付成功，顺丰仓配已开始为您打包拣货！')
     showPayDialog.value = false
     router.push('/orders')
   } catch (error) { 
@@ -313,7 +313,7 @@ onMounted(async () => {
                   <span class="p-name">{{ item.name }}</span>
                   <div class="p-tags">
                     <span class="p-spec" v-if="item.spec">规格：{{ item.spec }}</span>
-                    <span class="p-flash" v-if="item.isFlash">⚡ 限时特惠</span>
+                    <span class="p-flash" v-if="item.isFlash"><el-icon style="vertical-align: -2px; margin-right: 2px;"><Lightning /></el-icon>限时特惠</span>
                   </div>
                 </div>
                 <div class="p-price-qty">
@@ -598,9 +598,9 @@ onMounted(async () => {
 /* 面板通用卡片 */
 .panel-card {
   background: #ffffff;
-  border-radius: 16px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02);
+  border-radius: var(--em-radius-lg);
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  box-shadow: var(--em-shadow-card);
   padding: 24px;
   margin-bottom: 20px;
 }
@@ -639,24 +639,26 @@ onMounted(async () => {
 .address-box-card {
   padding: 16px;
   border: 1px solid #cbd5e1;
-  border-radius: 12px;
+  border-radius: var(--em-radius-md);
   background: #ffffff;
   cursor: pointer;
   position: relative;
-  transition: all 0.2s;
+  transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
 .address-box-card:hover {
-  border-color: #0284c7;
+  border-color: rgba(2, 132, 199, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.08);
 }
 
 .address-box-card.active {
   border-color: #0284c7;
   background-color: #f0f9ff;
-  box-shadow: 0 0 0 1px #0284c7;
+  box-shadow: 0 0 0 1.5px #0284c7, 0 4px 12px rgba(2, 132, 199, 0.12);
 }
 
 .addr-top {
@@ -958,9 +960,9 @@ onMounted(async () => {
 
 .summary-card {
   background: #ffffff;
-  border-radius: 16px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  border-radius: var(--em-radius-lg);
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  box-shadow: var(--em-shadow-card);
   padding: 24px;
 }
 
@@ -988,7 +990,7 @@ onMounted(async () => {
 }
 
 .fee-val.discount {
-  color: #f43f5e;
+  color: var(--em-accent);
 }
 
 .fee-divider {
@@ -1018,13 +1020,15 @@ onMounted(async () => {
 .st-curr {
   font-size: 18px;
   font-weight: bold;
-  color: #f43f5e;
+  color: var(--em-accent);
 }
 
 .st-num {
   font-size: 32px;
   font-weight: 900;
-  color: #f43f5e;
+  color: var(--em-accent);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.5px;
   line-height: 1;
 }
 
@@ -1042,17 +1046,22 @@ onMounted(async () => {
   width: 100%;
   height: 48px;
   border-radius: 24px;
-  background: linear-gradient(135deg, #0284c7, #0369a1);
+  background: linear-gradient(135deg, var(--em-accent), var(--em-accent-hover));
   border: none;
   font-size: 16px;
   font-weight: bold;
-  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.3);
-  transition: all 0.2s;
+  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.35);
+  transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  letter-spacing: 0.5px;
 }
 
 .place-order-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(2, 132, 199, 0.4);
+  box-shadow: 0 8px 22px rgba(249, 115, 22, 0.45);
+}
+
+.place-order-btn:active {
+  transform: scale(0.98);
 }
 
 .summary-trust-tips {

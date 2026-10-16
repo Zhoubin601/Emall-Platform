@@ -9,7 +9,15 @@ const mockCategories = [
   { id: 3, name: '👕 潮流服饰', parentId: 0, level: 1, sort: 3 },
   { id: 4, name: '🥤 美味零食', parentId: 0, level: 1, sort: 4 },
   { id: 5, name: '🏠 家居家电', parentId: 0, level: 1, sort: 5 },
-  { id: 6, name: '💄 美妆个护', parentId: 0, level: 1, sort: 6 }
+  { id: 6, name: '💄 美妆个护', parentId: 0, level: 1, sort: 6 },
+  { id: 11, name: '旗舰手机', parentId: 1, level: 2, sort: 1 },
+  { id: 12, name: '声学耳机', parentId: 1, level: 2, sort: 2 },
+  { id: 13, name: '快充配件', parentId: 1, level: 2, sort: 3 },
+  { id: 21, name: '客制化外设', parentId: 2, level: 2, sort: 1 },
+  { id: 22, name: '轻薄笔记本', parentId: 2, level: 2, sort: 2 },
+  { id: 31, name: '极简男装', parentId: 3, level: 2, sort: 1 },
+  { id: 41, name: '冷萃茶饮', parentId: 4, level: 2, sort: 1 },
+  { id: 51, name: '智能小家电', parentId: 5, level: 2, sort: 1 }
 ]
 
 const mockAds = [
@@ -134,10 +142,72 @@ const mockChatMessages = [
   {
     id: 1,
     userId: 7,
-    content: '您好！欢迎来到 E-MALL 全球品质严选商城，我是您的专属智能客服小E。请问有什么可以为您服务？💖',
+    content: '您好！欢迎来到 E-MALL 全球品质严选商城，我是您的专属智能客服小E。请问有什么可以为您服务？',
     senderRole: 1,
     type: '在线沟通',
     createTime: '2026-09-02 14:00:00'
+  },
+  {
+    id: 2,
+    userId: 7,
+    content: '你好，请问我刚买的 iPhone 16 Pro Max 钛金属极光灰什么时候能安排顺丰发货呀？',
+    senderRole: 0,
+    type: '在线沟通',
+    createTime: '2026-09-02 14:02:15'
+  },
+  {
+    id: 3,
+    userId: 7,
+    content: '亲爱的 VIP 星选体验官您好，您的订单已进入高优出库通道，预计今日 16:00 前由顺丰特快揽收发出！',
+    senderRole: 1,
+    type: '在线沟通',
+    createTime: '2026-09-02 14:03:05'
+  },
+  {
+    id: 4,
+    userId: 8,
+    content: '客服你好，客制化机械键盘支持 Mac 系统的快捷键切换吗？',
+    senderRole: 0,
+    type: '在线沟通',
+    createTime: '2026-09-02 15:18:40'
+  },
+  {
+    id: 5,
+    userId: 9,
+    content: '请问满 1000 减 150 的数码大额神券还可以和限时秒杀叠加使用吗？',
+    senderRole: 0,
+    type: '在线沟通',
+    createTime: '2026-09-02 16:05:12'
+  }
+]
+
+const mockFeedbacks = [
+  {
+    id: 101,
+    userId: 7,
+    type: '功能建议',
+    content: '希望增加更多旗舰数码产品的限时秒杀活动，并且支持以旧换新补贴估算！',
+    reply: '感谢您的宝贵建议！下周即将上线秋季数码狂欢季，以旧换新功能已列入研发排期。',
+    status: 1,
+    createTime: '2026-09-01 14:20:00'
+  },
+  {
+    id: 102,
+    userId: 8,
+    type: '售后咨询',
+    content: '购买的无线降噪耳机想要更换耳罩配色，请问未拆封支持免费换货吗？',
+    reply: '',
+    status: 0,
+    createTime: '2026-09-02 10:15:30'
+  },
+  {
+    id: 103,
+    userId: 9,
+    type: '报错反馈',
+    content: '在移动端 Safari 浏览器查看商品高清大图时偶发加载缓慢，希望优化 CDN 节点。',
+    reply: '',
+    status: 0,
+    createTime: '2026-09-02 11:42:18'
   }
 ]
 
@@ -276,6 +346,7 @@ const mockOrders = [
   {
     id: 1,
     orderSn: 'EMALL202608310001',
+    userId: 7,
     totalAmount: '8499.00',
     payAmount: '8499.00',
     status: 2,
@@ -295,6 +366,7 @@ const mockOrders = [
   {
     id: 2,
     orderSn: 'EMALL202608310002',
+    userId: 7,
     totalAmount: '1299.00',
     payAmount: '1299.00',
     status: 1,
@@ -314,6 +386,7 @@ const mockOrders = [
   {
     id: 3,
     orderSn: 'EMALL202608310003',
+    userId: 8,
     totalAmount: '499.00',
     payAmount: '499.00',
     status: 3,
@@ -330,6 +403,101 @@ const mockOrders = [
         spec: '红轴 / 极夜黑RGB'
       }
     ]
+  },
+  {
+    id: 4,
+    orderSn: 'EMALL202609010004',
+    userId: 9,
+    totalAmount: '199.00',
+    payAmount: '199.00',
+    status: 6,
+    createTime: '2026-09-01 09:12:00',
+    items: [
+      {
+        id: 4,
+        productId: 104,
+        productName: '极速磁吸无线充电底座 15W',
+        productPrice: 199,
+        quantity: 1,
+        productPic: 'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?auto=format&fit=crop&w=600&q=80',
+        spec: '皓月白 / 15W快充'
+      }
+    ]
+  },
+  {
+    id: 5,
+    orderSn: 'EMALL202609010005',
+    userId: 10,
+    totalAmount: '129.00',
+    payAmount: '129.00',
+    status: 0,
+    createTime: '2026-09-01 14:05:00',
+    items: [
+      {
+        id: 5,
+        productId: 105,
+        productName: '纯棉极简高质感微弹圆领T恤',
+        productPrice: 129,
+        quantity: 1,
+        productPic: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80',
+        spec: '白色 / L码'
+      }
+    ]
+  }
+]
+
+const mockComments = [
+  {
+    id: 1,
+    userId: 7,
+    productId: 101,
+    orderId: 1,
+    orderSn: 'EMALL202608300001',
+    nickname: '极客星人',
+    productName: 'iPhone 16 Pro Max 钛金属极光灰',
+    star: 5,
+    content: '钛金属手感非常惊艳，沙漠金光泽柔和，相机控制按键抓拍运动物体非常敏捷，日常续航完全撑得住两天！',
+    pics: 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?auto=format&fit=crop&w=600&q=80',
+    createTime: '2026-08-31 16:20:00'
+  },
+  {
+    id: 2,
+    userId: 7,
+    productId: 102,
+    orderId: 2,
+    orderSn: 'EMALL202608310002',
+    nickname: '音乐发烧友',
+    productName: '极简主动降噪无线头戴式耳机',
+    star: 5,
+    content: '降噪效果非常干净，低频下潜有力不轰头，耳罩海绵很亲肤，戴眼镜也不会压耳朵。',
+    pics: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=600&q=80',
+    createTime: '2026-08-30 11:45:00'
+  },
+  {
+    id: 3,
+    userId: 8,
+    productId: 103,
+    orderId: 3,
+    orderSn: 'EMALL202608310003',
+    nickname: '码农小李',
+    productName: '极客客制化机械键盘 87键 RGB',
+    star: 4,
+    content: '红轴打字非常顺滑，大键位调校得当没有杂音，驱动灯效可玩性很高，好评！',
+    pics: '',
+    createTime: '2026-08-29 18:30:00'
+  },
+  {
+    id: 4,
+    userId: 9,
+    productId: 104,
+    orderId: 4,
+    orderSn: 'EMALL202609010004',
+    nickname: '数码探索者',
+    productName: '极速磁吸无线充电底座 15W',
+    star: 5,
+    content: '桌面瞬间整洁了，吸力很强横屏看视频稳当，发热控制比官方的还好。',
+    pics: 'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?auto=format&fit=crop&w=600&q=80',
+    createTime: '2026-08-28 09:15:00'
   }
 ]
 
@@ -349,16 +517,203 @@ const server = http.createServer((req, res) => {
     return res.end()
   }
 
+  // 0. Comment endpoints
+  if (pathname === '/api/comment/list' || pathname === '/api/interaction/comment/list') {
+    res.writeHead(200)
+    return res.end(JSON.stringify(mockComments))
+  }
+
+  if (pathname === '/api/comment/my') {
+    res.writeHead(200)
+    return res.end(JSON.stringify(mockComments.filter(c => c.userId === 7 || !c.userId)))
+  }
+
+  const commentDetailMatch = pathname.match(/^\/api\/comment\/detail\/(\d+)$/)
+  if (commentDetailMatch) {
+    const id = Number(commentDetailMatch[1])
+    const c = mockComments.find(item => item.id === id) || mockComments[0]
+    res.writeHead(200)
+    return res.end(JSON.stringify(c))
+  }
+
+  if (pathname === '/api/comment/add') {
+    let body = ''
+    req.on('data', chunk => { body += chunk })
+    req.on('end', () => {
+      let data = {}
+      try { data = JSON.parse(body) } catch(e) {}
+      const newComment = {
+        id: Math.max(...mockComments.map(c => c.id), 0) + 1,
+        userId: Number(data.userId || 7),
+        productId: Number(data.productId || 101),
+        orderId: Number(data.orderId || 1),
+        orderSn: 'EMALL20260902' + (Math.floor(Math.random() * 9000) + 1000),
+        nickname: 'VIP星选体验官',
+        productName: '自营严选商品',
+        star: Number(data.star || 5),
+        content: data.content || '',
+        pics: data.pics || '',
+        createTime: '2026-09-02 ' + new Date().toLocaleTimeString('zh-CN', { hour12: false })
+      }
+      mockComments.unshift(newComment)
+      res.writeHead(200)
+      res.end(JSON.stringify('评价发布成功'))
+    })
+    return
+  }
+
+  if (pathname === '/api/comment/update') {
+    let body = ''
+    req.on('data', chunk => { body += chunk })
+    req.on('end', () => {
+      let data = {}
+      try { data = JSON.parse(body) } catch(e) {}
+      const c = mockComments.find(item => item.id === Number(data.id))
+      if (c) {
+        if (data.star !== undefined) c.star = Number(data.star)
+        if (data.content !== undefined) c.content = data.content
+        if (data.pics !== undefined) c.pics = data.pics
+      }
+      res.writeHead(200)
+      res.end(JSON.stringify('评价修改成功'))
+    })
+    return
+  }
+
+  const commentDeleteMatch = pathname.match(/^\/api\/comment\/(\d+)$/)
+  if (req.method === 'DELETE' && commentDeleteMatch) {
+    const id = Number(commentDeleteMatch[1])
+    const idx = mockComments.findIndex(c => c.id === id)
+    if (idx !== -1) mockComments.splice(idx, 1)
+    res.writeHead(200)
+    return res.end(JSON.stringify('评价已删除'))
+  }
+
+  if (pathname === '/api/file/upload') {
+    res.writeHead(200)
+    return res.end(JSON.stringify({
+      code: 200,
+      url: 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?auto=format&fit=crop&w=600&q=80',
+      message: '买家秀图片上传成功'
+    }))
+  }
+
   // 1. Categories
   if (pathname === '/api/category/list') {
     res.writeHead(200)
     return res.end(JSON.stringify(mockCategories))
   }
+  if (pathname === '/api/category/add') {
+    let body = ''
+    req.on('data', chunk => { body += chunk })
+    req.on('end', () => {
+      let data = {}
+      try { data = JSON.parse(body) } catch(e) {}
+      const newCat = {
+        id: Math.max(...mockCategories.map(c => c.id), 60) + 1,
+        name: data.name || '新分类',
+        parentId: Number(data.parentId || 0),
+        level: Number(data.level || 1),
+        sort: Number(data.sort || 1)
+      }
+      mockCategories.push(newCat)
+      res.writeHead(200)
+      res.end(JSON.stringify('分类新增成功'))
+    })
+    return
+  }
+  if (pathname === '/api/category/update') {
+    let body = ''
+    req.on('data', chunk => { body += chunk })
+    req.on('end', () => {
+      let data = {}
+      try { data = JSON.parse(body) } catch(e) {}
+      const cat = mockCategories.find(c => c.id === Number(data.id))
+      if (cat) {
+        if (data.name !== undefined) cat.name = data.name
+        if (data.parentId !== undefined) cat.parentId = Number(data.parentId)
+        if (data.level !== undefined) cat.level = Number(data.level)
+        if (data.sort !== undefined) cat.sort = Number(data.sort)
+      }
+      res.writeHead(200)
+      res.end(JSON.stringify('分类更新成功'))
+    })
+    return
+  }
+  const catDeleteMatch = pathname.match(/^\/api\/category\/delete\/(\d+)$/)
+  if (catDeleteMatch) {
+    const id = Number(catDeleteMatch[1])
+    const idx = mockCategories.findIndex(c => c.id === id)
+    if (idx !== -1) mockCategories.splice(idx, 1)
+    res.writeHead(200)
+    return res.end(JSON.stringify('分类已删除'))
+  }
 
   // 2. Ads
-  if (pathname === '/api/ad/active') {
+  if (pathname === '/api/ad/active' || pathname === '/api/ad/list') {
     res.writeHead(200)
-    return res.end(JSON.stringify(mockAds))
+    return res.end(JSON.stringify(mockAds.map((ad, idx) => ({
+      sort: ad.sort || idx + 1,
+      status: ad.status !== undefined ? ad.status : 1,
+      ...ad
+    }))))
+  }
+  if (pathname === '/api/ad/add') {
+    let body = ''
+    req.on('data', chunk => { body += chunk })
+    req.on('end', () => {
+      let data = {}
+      try { data = JSON.parse(body) } catch(e) {}
+      const newAd = {
+        id: Math.max(...mockAds.map(a => a.id), 0) + 1,
+        title: data.title || '新广告轮播图',
+        picUrl: data.picUrl || 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=1400&q=80',
+        linkUrl: data.linkUrl || '/',
+        sort: Number(data.sort || mockAds.length + 1),
+        status: data.status !== undefined ? Number(data.status) : 1
+      }
+      mockAds.push(newAd)
+      res.writeHead(200)
+      res.end(JSON.stringify('广告添加成功'))
+    })
+    return
+  }
+  if (pathname === '/api/ad/update') {
+    let body = ''
+    req.on('data', chunk => { body += chunk })
+    req.on('end', () => {
+      let data = {}
+      try { data = JSON.parse(body) } catch(e) {}
+      const ad = mockAds.find(a => a.id === Number(data.id))
+      if (ad) {
+        if (data.title !== undefined) ad.title = data.title
+        if (data.picUrl !== undefined) ad.picUrl = data.picUrl
+        if (data.linkUrl !== undefined) ad.linkUrl = data.linkUrl
+        if (data.sort !== undefined) ad.sort = Number(data.sort)
+        if (data.status !== undefined) ad.status = Number(data.status)
+      }
+      res.writeHead(200)
+      res.end(JSON.stringify('广告更新成功'))
+    })
+    return
+  }
+  const adDeleteMatch = pathname.match(/^\/api\/ad\/delete\/(\d+)$/)
+  if (adDeleteMatch) {
+    const id = Number(adDeleteMatch[1])
+    const idx = mockAds.findIndex(a => a.id === id)
+    if (idx !== -1) mockAds.splice(idx, 1)
+    res.writeHead(200)
+    return res.end(JSON.stringify('广告已删除'))
+  }
+
+  // 2.1 File Upload Common Mock
+  if (pathname === '/api/file/uploadCommon') {
+    res.writeHead(200)
+    return res.end(JSON.stringify({
+      code: 200,
+      url: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=1400&q=80',
+      message: '上传成功'
+    }))
   }
 
   // 3. Coupons
@@ -376,7 +731,51 @@ const server = http.createServer((req, res) => {
   // 4.1 Notices
   if (pathname === '/api/interaction/notice/active') {
     res.writeHead(200)
-    return res.end(JSON.stringify(mockNotices))
+    return res.end(JSON.stringify(mockNotices.filter(n => n.isActive === 1)))
+  }
+  if (pathname === '/api/interaction/notice/add') {
+    let body = ''
+    req.on('data', chunk => { body += chunk })
+    req.on('end', () => {
+      let data = {}
+      try { data = JSON.parse(body) } catch(e) {}
+      const newNotice = {
+        id: Math.max(...mockNotices.map(n => n.id), 0) + 1,
+        title: data.title || '新公告通知',
+        content: data.content || '',
+        isActive: data.isActive !== undefined ? Number(data.isActive) : 1,
+        createTime: '2026-09-02 ' + new Date().toLocaleTimeString('zh-CN', { hour12: false })
+      }
+      mockNotices.unshift(newNotice)
+      res.writeHead(200)
+      res.end(JSON.stringify('公告发布成功'))
+    })
+    return
+  }
+  if (pathname === '/api/interaction/notice/update') {
+    let body = ''
+    req.on('data', chunk => { body += chunk })
+    req.on('end', () => {
+      let data = {}
+      try { data = JSON.parse(body) } catch(e) {}
+      const n = mockNotices.find(item => item.id === Number(data.id))
+      if (n) {
+        if (data.title !== undefined) n.title = data.title
+        if (data.content !== undefined) n.content = data.content
+        if (data.isActive !== undefined) n.isActive = Number(data.isActive)
+      }
+      res.writeHead(200)
+      res.end(JSON.stringify('公告更新成功'))
+    })
+    return
+  }
+  const noticeDeleteMatch = pathname.match(/^\/api\/interaction\/notice\/delete\/(\d+)$/)
+  if (noticeDeleteMatch) {
+    const id = Number(noticeDeleteMatch[1])
+    const idx = mockNotices.findIndex(n => n.id === id)
+    if (idx !== -1) mockNotices.splice(idx, 1)
+    res.writeHead(200)
+    return res.end(JSON.stringify('公告已删除'))
   }
 
   // 5. Product list
@@ -385,7 +784,10 @@ const server = http.createServer((req, res) => {
     const keyword = parsedUrl.query.keyword
     let list = [...mockProducts]
     if (categoryId) {
-      list = list.filter(p => p.categoryId === Number(categoryId))
+      const cid = Number(categoryId)
+      const catObj = mockCategories.find(c => c.id === cid)
+      const parentCid = catObj && catObj.parentId ? catObj.parentId : cid
+      list = list.filter(p => p.categoryId === cid || p.categoryId === parentCid)
     }
     if (keyword) {
       list = list.filter(p => p.name.includes(keyword) || p.description.includes(keyword))
@@ -561,9 +963,23 @@ const server = http.createServer((req, res) => {
   // 11.2 Admin feedbacks
   if (pathname === '/api/interaction/feedback/list' || pathname === '/api/feedback/list') {
     res.writeHead(200)
-    return res.end(JSON.stringify([
-      { id: 1, userId: 1001, content: '希望增加更多数码产品的限时秒杀活动！', reply: '感谢您的建议，下周将上线数码狂欢季！', status: 1, createTime: '2026-09-01 14:20:00' }
-    ]))
+    return res.end(JSON.stringify(mockFeedbacks))
+  }
+  if (pathname === '/api/interaction/feedback/reply') {
+    let body = ''
+    req.on('data', chunk => { body += chunk })
+    req.on('end', () => {
+      let data = {}
+      try { data = JSON.parse(body) } catch(e) {}
+      const fb = mockFeedbacks.find(item => item.id === Number(data.id))
+      if (fb) {
+        fb.reply = data.reply || ''
+        fb.status = 1
+      }
+      res.writeHead(200)
+      res.end(JSON.stringify('工单回复成功'))
+    })
+    return
   }
 
   // 11.3 Chat User List for Admin
@@ -655,6 +1071,16 @@ const server = http.createServer((req, res) => {
       }))
     })
     return
+  }
+
+  // 11.75 Favorite endpoints
+  if (pathname === '/api/favorite/list') {
+    res.writeHead(200)
+    return res.end(JSON.stringify([mockProducts[0], mockProducts[1]]))
+  }
+  if (pathname === '/api/favorite/toggle') {
+    res.writeHead(200)
+    return res.end(JSON.stringify('uncollected'))
   }
 
   // 11.8 Order Status Update (Pay / Cancel)

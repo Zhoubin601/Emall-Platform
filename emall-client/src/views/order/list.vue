@@ -64,6 +64,37 @@ const copyOrderSn = (sn: string) => {
   ElMessage.success('订单编号已复制到剪贴板！')
 }
 
+// 提取与兜底订单商品清单
+const getOrderItems = (order: any) => {
+  if (Array.isArray(order.items) && order.items.length > 0) {
+    return order.items.map((item: any) => ({
+      id: item.id || item.productId,
+      productId: item.productId || 1,
+      name: item.productName || item.name || 'E-MALL 官方严选自营商品',
+      price: item.productPrice ?? item.price ?? order.totalAmount,
+      count: item.quantity ?? item.productCount ?? item.count ?? 1,
+      picUrl: item.productPic || item.picUrl || 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?auto=format&fit=crop&w=600&q=80',
+      spec: item.spec || item.specName || '官方旗舰标配'
+    }))
+  }
+  return [
+    {
+      id: order.id,
+      productId: order.productId || 1,
+      name: order.productName || 'E-MALL 全球严选品质单品',
+      price: order.totalAmount,
+      count: 1,
+      picUrl: 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?auto=format&fit=crop&w=600&q=80',
+      spec: '官方旗舰标配'
+    }
+  ]
+}
+
+const getOrderTotalQuantity = (order: any) => {
+  const items = getOrderItems(order)
+  return items.reduce((sum: number, it: any) => sum + (Number(it.count) || 1), 0)
+}
+
 // 订单操作
 const handleCancel = (order: any) => {
   ElMessageBox.confirm('确定要取消这笔订单吗？取消后库存将自动解冻回补。', '取消订单确认', {
@@ -258,18 +289,43 @@ onMounted(() => fetchMyOrders())
 
           <!-- 订单内容与价格明细 -->
           <div class="card-body-content">
+            <!-- 1. 真实商品清单 -->
             <div class="order-goods-summary">
-              <div class="goods-desc-line">
-                <span class="store-badge">自营仓直发</span>
-                <span class="goods-name">商品订单共包含所选精选商品，全链路正品溯源保障</span>
+              <div class="order-items-list">
+                <div 
+                  v-for="item in getOrderItems(order)" 
+                  :key="item.id" 
+                  class="order-item-row"
+                  @click="router.push(`/product/${item.productId}`)"
+                  title="点击查看商品详情"
+                >
+                  <div class="item-img-box">
+                    <img :src="item.picUrl" class="item-pic" :alt="item.name" />
+                    <span class="ziying-corner-badge">自营</span>
+                  </div>
+                  <div class="item-meta">
+                    <div class="item-title">{{ item.name }}</div>
+                    <div class="item-sub-tags">
+                      <span class="spec-bubble">{{ item.spec }}</span>
+                      <span class="service-pill">正品溯源 · 顺丰速运</span>
+                    </div>
+                  </div>
+                  <div class="item-price-quantity">
+                    <div class="unit-price">¥{{ Number(item.price).toFixed(2) }}</div>
+                    <div class="quantity-text">共 {{ item.count }} 件</div>
+                  </div>
+                </div>
               </div>
             </div>
 
+            <!-- 2. 实付款总览 -->
             <div class="order-price-summary">
-              <span class="total-label">实付款：</span>
-              <span class="total-curr">¥</span>
-              <span class="total-price">{{ order.totalAmount }}</span>
-              <span class="freight-hint">(含顺丰保价运费)</span>
+              <div class="price-main-block">
+                <span class="total-label">实付款</span>
+                <span class="total-curr">¥</span>
+                <span class="total-price">{{ Number(order.totalAmount).toLocaleString('zh-CN', { minimumFractionDigits: 2 }) }}</span>
+              </div>
+              <div class="goods-count-tip">共 {{ getOrderTotalQuantity(order) }} 件宝贝 · 含顺丰保价</div>
             </div>
 
             <!-- 操作按钮组 -->
@@ -482,15 +538,16 @@ onMounted(() => fetchMyOrders())
 
 .order-box-card {
   background: #ffffff;
-  border-radius: 16px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02);
+  border-radius: var(--em-radius-lg);
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  box-shadow: var(--em-shadow-card);
   overflow: hidden;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.24s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .order-box-card:hover {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
+  box-shadow: var(--em-shadow-hover);
 }
 
 .card-header-bar {
@@ -557,62 +614,171 @@ onMounted(() => fetchMyOrders())
 .card-body-content {
   padding: 20px 24px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  align-items: stretch;
+  gap: 24px;
 }
 
 .order-goods-summary {
   flex: 1;
+  min-width: 0;
+  border-right: 1px solid #f1f5f9;
+  padding-right: 20px;
 }
 
-.goods-desc-line {
+.order-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.order-item-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  transition: background 0.2s ease;
 }
 
-.store-badge {
-  background-color: #ffe4e6;
-  color: #e11d48;
-  font-size: 11px;
-  font-weight: bold;
+.order-item-row:hover {
+  background: #f8fafc;
+}
+
+.order-item-row:hover .item-title {
+  color: #0284c7;
+}
+
+.item-img-box {
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+  background: #f8fafc;
+}
+
+.item-pic {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.order-item-row:hover .item-pic {
+  transform: scale(1.05);
+}
+
+.ziying-corner-badge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: #e11d48;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-bottom-right-radius: 6px;
+}
+
+.item-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.item-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 0.2s ease;
+}
+
+.item-sub-tags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.spec-bubble {
+  font-size: 12px;
+  color: #64748b;
+  background: #f1f5f9;
   padding: 2px 8px;
   border-radius: 4px;
 }
 
-.goods-name {
+.service-pill {
+  font-size: 11px;
+  color: #0284c7;
+  background: #f0f9ff;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.item-price-quantity {
+  text-align: right;
+  min-width: 90px;
+}
+
+.unit-price {
   font-size: 14px;
-  color: #334155;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.quantity-text {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 3px;
 }
 
 .order-price-summary {
-  width: 220px;
+  width: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid #f1f5f9;
+  padding: 0 16px;
+}
+
+.price-main-block {
   display: flex;
   align-items: baseline;
-  justify-content: center;
+  gap: 2px;
 }
 
 .total-label {
   font-size: 12px;
   color: #64748b;
+  margin-right: 4px;
 }
 
 .total-curr {
-  font-size: 16px;
-  font-weight: bold;
-  color: #f43f5e;
+  font-size: 15px;
+  font-weight: 800;
+  color: #e11d48;
 }
 
 .total-price {
   font-size: 24px;
   font-weight: 900;
-  color: #f43f5e;
+  color: #e11d48;
+  letter-spacing: -0.02em;
 }
 
-.freight-hint {
-  font-size: 11px;
+.goods-count-tip {
+  font-size: 12px;
   color: #94a3b8;
-  margin-left: 4px;
+  margin-top: 6px;
+  text-align: center;
 }
 
 /* 操作按钮 */
@@ -626,12 +792,22 @@ onMounted(() => fetchMyOrders())
   border-radius: 20px;
   font-weight: bold;
   font-size: 13px;
+  transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.act-btn:active {
+  transform: scale(0.96);
 }
 
 .btn-primary-red {
-  background: linear-gradient(135deg, #0284c7, #0369a1);
+  background: linear-gradient(135deg, var(--em-accent), var(--em-accent-hover));
   border: none;
   color: #ffffff;
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.25);
+}
+
+.btn-primary-red:hover {
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4);
 }
 
 .audit-tag {
