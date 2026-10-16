@@ -3,55 +3,60 @@ updates:
   - package-ecosystem: maven
     directory: /mall-backend
     schedule:
-      interval: weekly
-      day: monday
-      time: "02:00"
+      interval: monthly
       timezone: Asia/Shanghai
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
     groups:
       maven-minor-and-patch:
         update-types:
           - minor
           - patch
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: npm
     directory: /emall-client
     schedule:
-      interval: weekly
-      day: monday
-      time: "02:15"
+      interval: monthly
       timezone: Asia/Shanghai
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
     groups:
       client-minor-and-patch:
         update-types:
           - minor
           - patch
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: npm
     directory: /emall-admin
     schedule:
-      interval: weekly
-      day: monday
-      time: "02:30"
+      interval: monthly
       timezone: Asia/Shanghai
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
     groups:
       admin-minor-and-patch:
         update-types:
           - minor
           - patch
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
-      day: monday
-      time: "02:45"
+      interval: monthly
       timezone: Asia/Shanghai
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
     groups:
       actions-minor-and-patch:
         update-types:
           - minor
           - patch
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
