@@ -1,7 +1,12 @@
 import { test } from '@playwright/test'
 import path from 'path'
+import os from 'os'
+import fs from 'fs'
 
-const artifactDir = 'C:\\Users\\a3185\\.gemini\\antigravity\\brain\\614bf3e9-fe6c-4b62-995e-a05ae0962c26'
+const artifactDir = process.env.ARTIFACT_DIR || path.join(os.tmpdir(), 'emall-artifacts')
+if (!fs.existsSync(artifactDir)) {
+  fs.mkdirSync(artifactDir, { recursive: true })
+}
 
 test.describe('Visual Screenshots Test', () => {
   test('Capture Client Desktop, Mobile, Cart, and Order Screenshots', async ({ page }) => {

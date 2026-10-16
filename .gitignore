@@ -52,6 +52,7 @@ pnpm-debug.log*
 Thumbs.db
 Desktop.ini
 *.bat
+!start-all.bat
 *.tmp
 *.temp
 *.bak

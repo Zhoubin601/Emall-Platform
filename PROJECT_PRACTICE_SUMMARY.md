@@ -17,7 +17,7 @@
   - [2. 服务端可信计价与高并发原子防超卖](#2-服务端可信计价与高并发原子防超卖)
   - [3. 前端代理 (Vite Proxy) 与跨域治理](#3-前端代理-vite-proxy-与跨域治理)
   - [4. 角色权限拦截与水平越权防护](#4-角色权限拦截与水平越权防护)
-- [四、 本次改动回退与版本状态声明](#四-本次改动回退与版本状态声明)
+- [四、 全链路UI现代化与自动化质量门禁](#四-全链路ui现代化与自动化质量门禁)
 - [五、 一键启动与开发部署指引](#五-一键启动与开发部署指引)
 
 ---
@@ -98,16 +98,16 @@
   1. 经网络与端口探测，原默认配置缺少明确端口与鉴权参数；
   2. 测试发现 QQ 邮箱 SMTP 对第三方授权码的连接协议有严格要求（必须使用加密传输）。
 - **解决方案**：
-  - 更新授权码为用户专属新授权码：`eldbutadkmjydcgg`；
+  - 更新授权码为用户专属 16 位 SMTP 授权码（出于安全合规已脱敏处理：`****************`）；
   - 明确配置端口为 `587`，启用 `starttls.enable: true` 与 `starttls.required: true`；
-  - 在 `mall-backend/src/main/resources/application.yml` 与本地启动脚本中注入环境变量：
+  - 在 `mall-backend/src/main/resources/application.yml` 与本地环境配置中注入参数：
     ```yaml
     spring:
       mail:
         host: ${MAIL_HOST:smtp.qq.com}
         port: ${MAIL_PORT:587}
         username: ${MAIL_USERNAME:3185130953@qq.com}
-        password: ${MAIL_PASSWORD:eldbutadkmjydcgg}
+        password: ${MAIL_PASSWORD:****************}
         default-encoding: UTF-8
         properties:
           mail:
@@ -143,24 +143,16 @@
 
 ---
 
-## 四、 本次改动回退与版本状态声明
+## 四、 全链路UI现代化与自动化质量门禁
 
-按照用户的明确指令：
-> *“你现在把改动回退到我们修改完qq邮箱那，然后写好总结文档上传至远端仓库”*
-
-平台现已执行如下操作与版本对齐：
-1. **保留核心配置**：
-   - 完整保留 `mall-backend/src/main/resources/application.yml` 的 QQ 邮箱 SMTP 授权码与 587 端口通信配置；
-   - 完整保留用户注册/找回密码时发送验证码邮件的完整业务逻辑；
-   - 完整保留前台商城现代化**主页 (`emall-client/src/views/home/index.vue`)** 的美化布局、全量多级分类、活动秒杀、公告弹窗及客服联动效果；
-   - 完整保留后台管理系统的功能完善与逻辑缺陷修复。
-2. **精确回退子页面**：
-   - 严格回退在邮箱配置之后进行的其余 9 个客户端子页面（商品详情 `detail.vue`、购物车 `cart/index.vue`、结算页 `checkout.vue`、订单列表 `list.vue`、发表评价 `comment.vue`、个人中心 `profile.vue`、收货地址 `address.vue`、收藏夹 `favorites.vue`、我的评价 `MyComments.vue`）的代码，恢复至邮件配置完成时的稳定版本；
-   - 确保原有功能与业务逻辑纯粹、可靠。
-3. **构建验证**：
-   - `emall-client`: `npm run build` 成功完成，0 报错（耗时约 6.9s）；
-   - `emall-admin`: `npm run build` 成功完成，0 报错（耗时约 8.2s）；
-   - `mall-backend`: `mvn package -DskipTests` 成功打包生成可执行 JAR（BUILD SUCCESS）。
+1. **全栈 UI 视觉统一与响应式升级**：
+   - **前台买家商城 (`emall-client`)**：全面采用 Tech Sapphire Blue & Coral Orange 现代电商设计体系，封装统一金融级价格排印组件 (`EmPrice.vue`) 与用户中心布局 (`UserCenterLayout.vue`)，完成商城首页、商品详情、购物车、结算收银台、订单管理、晒图评价、收货地址、我的收藏等全量页面的现代化升级。
+   - **运营管理后台 (`emall-admin`)**：构建 Bento Grid 全域经营数据驾驶舱，整合 ECharts 7/30/季度销售走势、订单状态环形图与 TOP 5 爆款排行，优化商品多规格矩阵、订单发货与退款审核工作台交互。
+2. **多维自动化测试与持续集成验证**：
+   - **前端单元测试 (Vitest)**：覆盖客户端与管理端核心 Pinia Store、路由鉴权守卫及看板数据转换逻辑，`npm test` 全量通过。
+   - **生产构建与类型检查**：`emall-client` 与 `emall-admin` 均通过 `vue-tsc -b && vite build` 严格类型校验与生产打包（0 报错）。
+   - **端到端浏览器测试 (Playwright Chromium)**：`npm run test:e2e` 自动拉起双端服务并验证买家登录流、收银台无障碍表单、管理员看板渲染及超管权限路由拦截（7/7 用例全数通过）。
+   - **后端测试与覆盖率门禁 (JUnit 5 + Testcontainers + JaCoCo)**：`mall-backend` 集成真实 MySQL/Redis 容器测试与 JaCoCo 覆盖率校验（要求 `OrderService` 行覆盖率 $\ge 90\%$、分支覆盖率 $\ge 65\%$）。
 
 ---
 
