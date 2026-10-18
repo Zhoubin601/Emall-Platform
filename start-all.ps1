@@ -76,7 +76,7 @@ $env:UPLOAD_STORAGE_DIR = "$PSScriptRoot\mall-backend\uploads"
 if (-not $env:MAIL_HOST) { $env:MAIL_HOST = 'smtp.qq.com' }
 if (-not $env:MAIL_PORT) { $env:MAIL_PORT = '587' }
 if (-not $env:MAIL_USERNAME) { $env:MAIL_USERNAME = '3185130953@qq.com' }
-if (-not $env:MAIL_PASSWORD) { $env:MAIL_PASSWORD = 'eldbutadkmjydcgg' }
+if (-not $env:MAIL_PASSWORD) { $env:MAIL_PASSWORD = 'your_smtp_auth_code_here' }
 
 $jarPath = Join-Path $PSScriptRoot "mall-backend\target\mall-backend-1.0-SNAPSHOT.jar"
 $javaCmd = Get-Command java.exe -ErrorAction SilentlyContinue

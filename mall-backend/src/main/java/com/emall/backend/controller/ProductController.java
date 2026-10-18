@@ -130,6 +130,7 @@ public class ProductController {
         return "取消秒杀成功";
     }
 
+    @CacheEvict(value = "productList", allEntries = true)
     @DeleteMapping("/delete/{id}")
     public String deleteProduct(@PathVariable Long id) {
         productMapper.deleteById(id);
@@ -240,6 +241,7 @@ public class ProductController {
                 .autoCloseStream(Boolean.FALSE).sheet("全量数据").doWrite(exportList);
     }
 
+    @CacheEvict(value = "productList", allEntries = true)
     @PostMapping("/import")
     @Transactional(rollbackFor = Exception.class) // ✨ 遇到任何错误立即回滚数据库！
     public String importProducts(@RequestParam("file") MultipartFile file) throws Exception {

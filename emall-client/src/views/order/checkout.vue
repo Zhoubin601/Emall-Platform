@@ -51,26 +51,29 @@ const syncLatestPrices = async () => {
         let originalBasePrice = realPrice
         let isFlashActive = false
 
-        if (detail.promoStartTime && detail.promoEndTime && detail.promoPrice !== undefined && detail.promoPrice !== null) {
-          const now = Date.now()
-          const start = new Date(detail.promoStartTime.replace(/-/g, '/')).getTime()
-          const end = new Date(detail.promoEndTime.replace(/-/g, '/')).getTime()
-          if (now >= start && now <= end) {
-            const promo = Number(detail.promoPrice)
-            if (!isNaN(promo)) {
-              realPrice = promo
-              isFlashActive = true
-            }
-          }
-        }
-
-        if (!isFlashActive && item.skuId && Array.isArray(skus)) {
+        if (item.skuId && Array.isArray(skus)) {
           const targetSku = skus.find((s: any) => s.id === item.skuId)
           if (targetSku && targetSku.price !== undefined && targetSku.price !== null) {
             const skuPrice = Number(targetSku.price)
             if (!isNaN(skuPrice)) {
               realPrice = skuPrice
               originalBasePrice = skuPrice
+            }
+          }
+        }
+
+        const promoSkuId = Number(detail.promoSkuId || 0)
+        const promoStockAvailable = detail.promoStock === undefined || detail.promoStock === null || Number(detail.promoStock) > 0
+        const skuMatchesPromo = promoSkuId <= 0 || Number(item.skuId) === promoSkuId
+        if (detail.promoStartTime && detail.promoEndTime && detail.promoPrice !== undefined && detail.promoPrice !== null && promoStockAvailable && skuMatchesPromo) {
+          const now = Date.now()
+          const start = new Date(detail.promoStartTime.replace(/-/g, '/')).getTime()
+          const end = new Date(detail.promoEndTime.replace(/-/g, '/')).getTime()
+          if (now >= start && now <= end) {
+            const promo = Number(detail.promoPrice)
+            if (!isNaN(promo) && promo > 0) {
+              realPrice = promo
+              isFlashActive = true
             }
           }
         }

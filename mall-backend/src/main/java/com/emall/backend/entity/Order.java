@@ -1,5 +1,6 @@
 package com.emall.backend.entity;
 
+import com.alibaba.excel.annotation.ExcelIgnoreUnannotated;
 import com.alibaba.excel.annotation.ExcelProperty;
 import com.alibaba.excel.annotation.format.DateTimeFormat;
 import com.alibaba.excel.annotation.write.style.ColumnWidth;
@@ -13,6 +14,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
+@ExcelIgnoreUnannotated
 @TableName("oms_order")
 public class Order {
     private Long productId;

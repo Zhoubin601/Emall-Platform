@@ -102,7 +102,7 @@ const filteredProducts = computed(() => {
 const handleAdd = () => {
   isEdit.value = false
   Object.assign(productForm, {
-    id: undefined, name: '', categoryId: undefined, price: 0, stock: 0,
+    id: undefined, name: '', categoryId: categoryList.value[0]?.id, price: 0, stock: 0,
     picUrl: '', description: '', status: 1,
     promoPrice: undefined, promoStartTime: undefined, promoEndTime: undefined
   })
@@ -583,18 +583,35 @@ onMounted(() => { fetchCategories(); fetchProducts() })
       <template #footer><el-button @click="submitSkuForm" type="primary">保存</el-button></template>
     </el-dialog>
 
-    <el-dialog v-model="dialogVisible" title="商品信息" width="550px" class="glass-dialog">
+    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑商品信息' : '发布新商品'" width="550px" class="glass-dialog">
       <el-form :model="productForm" label-width="90px">
-        <el-form-item label="名称"><el-input v-model="productForm.name"/></el-form-item>
-        <el-form-item label="单价"><el-input-number v-model="productForm.price"/></el-form-item>
+        <el-form-item label="名称" required><el-input v-model="productForm.name" placeholder="请输入商品名称" /></el-form-item>
+        <el-form-item label="所属分类" required>
+          <el-select v-model="productForm.categoryId" placeholder="请选择商品分类" style="width: 100%;">
+            <el-option v-for="cat in categoryList" :key="cat.id" :label="cat.name" :value="cat.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="单价" required><el-input-number v-model="productForm.price" :min="0" :precision="2" style="width: 100%;" /></el-form-item>
         <el-form-item label="总库存">
-          <el-input-number v-model="productForm.stock" disabled />
+          <el-input-number v-model="productForm.stock" disabled style="width: 100%;" />
           <div style="font-size: 12px; color: #94a3b8; line-height: 1.2; margin-top: 5px;">
             系统已开启库存强一致性联动。总库存由 [规格/补货] 自动求和计算，禁止手动修改。
           </div>
         </el-form-item>
+        <el-form-item label="商品主图">
+          <el-input v-model="productForm.picUrl" placeholder="请输入商品主图 URL（可选）" clearable />
+        </el-form-item>
+        <el-form-item label="商品描述">
+          <el-input v-model="productForm.description" type="textarea" :rows="3" placeholder="请输入商品详情描述（可选）" />
+        </el-form-item>
+        <el-form-item label="上架状态">
+          <el-switch v-model="productForm.status" :active-value="1" :inactive-value="0" active-text="立即上架" inactive-text="暂存下架" />
+        </el-form-item>
       </el-form>
-      <template #footer><el-button @click="handleSubmit" type="primary">保存</el-button></template>
+      <template #footer>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button @click="handleSubmit" type="primary" :loading="submitLoading">保存</el-button>
+      </template>
     </el-dialog>
   </div>
 </template>

@@ -84,7 +84,7 @@ const handleSave = async () => {
             <div class="avatar-wrapper">
               <el-avatar v-if="form.avatar && !form.avatar.includes('default-avatar')" :size="120" :src="getSafeAvatar(form.avatar)" class="user-avatar" />
               <el-avatar v-else :size="120" class="user-avatar default-avatar-bg">
-                {{ form.username.charAt(0).toUpperCase() }}
+                {{ (form.username || 'A').charAt(0).toUpperCase() }}
               </el-avatar>
               <div class="avatar-hover-mask">
                 <el-icon class="upload-icon"><Plus /></el-icon>

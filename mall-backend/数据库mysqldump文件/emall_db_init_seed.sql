@@ -14,6 +14,24 @@ USE `emall_db`;
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS flyway_schema_history;
+DROP TABLE IF EXISTS cms_ad;
+DROP TABLE IF EXISTS cms_feedback;
+DROP TABLE IF EXISTS cms_notice;
+DROP TABLE IF EXISTS oms_order_item;
+DROP TABLE IF EXISTS oms_order;
+DROP TABLE IF EXISTS pms_category;
+DROP TABLE IF EXISTS pms_comment;
+DROP TABLE IF EXISTS pms_favorite;
+DROP TABLE IF EXISTS pms_hot_search;
+DROP TABLE IF EXISTS pms_sku;
+DROP TABLE IF EXISTS pms_product;
+DROP TABLE IF EXISTS sms_user_coupon;
+DROP TABLE IF EXISTS sms_coupon;
+DROP TABLE IF EXISTS sys_user;
+DROP TABLE IF EXISTS ums_address;
+DROP TABLE IF EXISTS ums_user;
+
 -- [1/2] 结构定义 (DDL)
 CREATE TABLE cms_ad (
     id BIGINT NOT NULL AUTO_INCREMENT,

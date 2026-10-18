@@ -28,7 +28,7 @@ spring:
   flyway:
     enabled: true
     baseline-on-migrate: true
-    baseline-version: 0
+    baseline-version: 4
     validate-migration-naming: true
     clean-disabled: true
 
@@ -36,7 +36,7 @@ spring:
     host: ${MAIL_HOST:smtp.qq.com}
     port: ${MAIL_PORT:587}
     username: ${MAIL_USERNAME:3185130953@qq.com}
-    password: ${MAIL_PASSWORD:eldbutadkmjydcgg}
+    password: ${MAIL_PASSWORD:your_smtp_auth_code_here}
     default-encoding: UTF-8
     properties:
       mail:

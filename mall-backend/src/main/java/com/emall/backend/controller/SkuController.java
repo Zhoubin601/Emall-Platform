@@ -6,6 +6,7 @@ import com.emall.backend.entity.Sku;
 import com.emall.backend.mapper.ProductMapper;
 import com.emall.backend.mapper.SkuMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,6 +26,7 @@ public class SkuController {
         return skuMapper.selectList(new QueryWrapper<Sku>().eq("product_id", productId));
     }
 
+    @CacheEvict(value = "productList", allEntries = true)
     @PostMapping("/add")
     public String addSku(@RequestBody Sku sku) {
         skuMapper.insert(sku);
@@ -32,6 +34,7 @@ public class SkuController {
         return "规格添加成功";
     }
 
+    @CacheEvict(value = "productList", allEntries = true)
     @PutMapping("/update")
     public String updateSku(@RequestBody Sku sku) {
         // 更新前先拿到原本的 productId，防止修改时变动了所属商品
@@ -41,6 +44,7 @@ public class SkuController {
         return "规格更新成功";
     }
 
+    @CacheEvict(value = "productList", allEntries = true)
     @DeleteMapping("/delete/{id}")
     public String deleteSku(@PathVariable Long id) {
         Sku sku = skuMapper.selectById(id);

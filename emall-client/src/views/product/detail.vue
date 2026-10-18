@@ -131,8 +131,18 @@ onUnmounted(() => {
 
 // 价格与库存计算
 const basePrice = computed(() => selectedSku.value ? selectedSku.value.price : product.value.price || 0)
+const isSelectedSkuPromoEligible = computed(() => {
+  if (product.value.promoStock !== undefined && product.value.promoStock !== null && Number(product.value.promoStock) <= 0) {
+    return false
+  }
+  const promoSkuId = Number(product.value.promoSkuId || 0)
+  if (promoSkuId > 0 && selectedSku.value) {
+    return Number(selectedSku.value.id) === promoSkuId
+  }
+  return true
+})
 const currentPrice = computed(() => {
-  if (flashSaleStatus.value === 2 && product.value.promoPrice) {
+  if (flashSaleStatus.value === 2 && product.value.promoPrice && isSelectedSkuPromoEligible.value) {
     return product.value.promoPrice
   }
   return basePrice.value
@@ -143,7 +153,7 @@ const displayOriginalPrice = computed(() => {
   const op = Number(product.value.originalPrice || product.value.marketPrice || 0)
   if (op > currentPrice.value) return op
   if (basePrice.value > currentPrice.value) return basePrice.value
-  if (flashSaleStatus.value === 2) return Math.round(currentPrice.value * 1.15)
+  if (flashSaleStatus.value === 2 && isSelectedSkuPromoEligible.value) return Math.round(currentPrice.value * 1.15)
   return 0
 })
 

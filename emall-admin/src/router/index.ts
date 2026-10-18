@@ -24,7 +24,8 @@ const routes = [
       { path: 'notices', name: 'Notices', component: () => import('../views/notice/index.vue'), meta: { title: '公告管理' } },
       // ✨ 核心修复：轮播图(广告)管理路由
       { path: 'ads', name: 'Ads', component: () => import('../views/ad/index.vue'), meta: { title: '轮播管理' } },
-      { path: 'profile', name: 'Profile', component: () => import('../views/profile/index.vue'), meta: { title: '个人中心' } }
+      { path: 'profile', name: 'Profile', component: () => import('../views/profile/index.vue'), meta: { title: '个人中心' } },
+      { path: 'settings', name: 'Settings', component: () => import('../views/profile/index.vue'), meta: { title: '系统设置' } }
     ]
   }
 ]
