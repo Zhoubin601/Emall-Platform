@@ -138,8 +138,8 @@ class OrderServiceTest {
         verify(itemMapper).insert(savedItem.capture());
 
         assertThat(result.orderId()).isEqualTo(77L);
-        assertThat(result.totalAmount()).isEqualByComparingTo("210.00");
-        assertThat(savedOrder.getValue().getTotalAmount()).isEqualByComparingTo("210.00");
+        assertThat(result.totalAmount()).isEqualByComparingTo("200.00");
+        assertThat(savedOrder.getValue().getTotalAmount()).isEqualByComparingTo("200.00");
         assertThat(savedItem.getValue().getProductId()).isEqualTo(9L);
         assertThat(savedItem.getValue().getProductName()).isEqualTo("真实商品 (官方规格)");
         assertThat(savedItem.getValue().getProductPrice()).isEqualByComparingTo("100.00");
@@ -156,6 +156,16 @@ class OrderServiceTest {
     }
 
     @Test
+    void chargesShippingFeeWhenSubtotalIsBelowFreeShippingThreshold() {
+        prepareCreation(new BigDecimal("30.00"), 8);
+
+        OrderService.CreatedOrder result = service.createOrder(
+                orderRequest(null), USER_ID, IDEMPOTENCY_KEY);
+
+        assertThat(result.totalAmount()).isEqualByComparingTo("70.00"); // 30*2 + 10 shipping
+    }
+
+    @Test
     void usesActivePromotionAndConsumesEligibleCoupon() {
         CreationFixture fixture = prepareCreation(new BigDecimal("100.00"), 8);
         fixture.product().setPromoPrice(new BigDecimal("80.00"));
@@ -168,7 +178,7 @@ class OrderServiceTest {
         OrderService.CreatedOrder result = service.createOrder(
                 orderRequest(12L), USER_ID, IDEMPOTENCY_KEY);
 
-        assertThat(result.totalAmount()).isEqualByComparingTo("150.00");
+        assertThat(result.totalAmount()).isEqualByComparingTo("140.00");
         verify(userCouponMapper).consume(12L, USER_ID);
     }
 
@@ -301,7 +311,7 @@ class OrderServiceTest {
         OrderService.CreatedOrder result = service.createOrder(
                 orderRequest(null), USER_ID, IDEMPOTENCY_KEY);
 
-        assertThat(result.totalAmount()).isEqualByComparingTo("110.00"); // 50*2 + 10 shipping
+        assertThat(result.totalAmount()).isEqualByComparingTo("100.00"); // 50*2 = 100 >= 99 免邮
         verify(productMapper).update(isNull(), any(Wrapper.class));
     }
 
@@ -317,7 +327,7 @@ class OrderServiceTest {
         OrderService.CreatedOrder result = service.createOrder(
                 orderRequest(null), USER_ID, IDEMPOTENCY_KEY);
 
-        assertThat(result.totalAmount()).isEqualByComparingTo("110.00");
+        assertThat(result.totalAmount()).isEqualByComparingTo("100.00");
         verify(productMapper).update(isNull(), any(Wrapper.class));
     }
 

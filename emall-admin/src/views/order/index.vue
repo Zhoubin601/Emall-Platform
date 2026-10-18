@@ -207,27 +207,36 @@ const handleViewDetail = async (id: number) => {
   }
 }
 
-const handleExport = () => {
+const handleExport = async () => {
   exportLoading.value = true
-  const baseUrl = '/api/order/export'
-  const params = new URLSearchParams()
-  if (searchForm.orderSn) params.append('orderSn', searchForm.orderSn)
-  if (searchForm.userId) params.append('userId', searchForm.userId)
-  if (searchForm.status !== '') params.append('status', searchForm.status.toString())
-  
-  const downloadUrl = `${baseUrl}?${params.toString()}`
-  const link = document.createElement('a')
-  link.style.display = 'none'
-  link.href = downloadUrl
-  link.setAttribute('download', `订单报表_${new Date().getTime()}.xlsx`)
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  
-  setTimeout(() => {
+  try {
+    ElMessage.info('正在生成订单报表，请稍候...')
+    const res: any = await request.get('/order/export', {
+      params: {
+        orderSn: searchForm.orderSn || undefined,
+        userId: searchForm.userId || undefined,
+        status: searchForm.status !== '' ? searchForm.status : undefined
+      },
+      responseType: 'blob'
+    })
+    const blob = new Blob([res], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    })
+    const downloadUrl = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.style.display = 'none'
+    link.href = downloadUrl
+    link.setAttribute('download', `E-MALL订单报表_${new Date().getTime()}.xlsx`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(downloadUrl)
+    ElMessage.success('订单报表导出成功！')
+  } catch (error) {
+    ElMessage.error('导出失败，请检查网络或权限状态')
+  } finally {
     exportLoading.value = false
-    ElMessage.success('报表生成中，请查看浏览器下载记录')
-  }, 1000)
+  }
 }
 
 onMounted(() => fetchOrders())

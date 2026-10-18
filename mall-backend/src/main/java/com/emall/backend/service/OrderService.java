@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @Service
 public class OrderService {
     private static final BigDecimal SHIPPING_FEE = new BigDecimal("10.00");
+    private static final BigDecimal FREE_SHIPPING_THRESHOLD = new BigDecimal("99.00");
     private static final String IDEMPOTENCY_PREFIX = "order:idempotency:";
 
     private final OrderMapper orderMapper;
@@ -123,7 +124,10 @@ public class OrderService {
         }
 
         BigDecimal discount = validateAndConsumeCoupon(request.userCouponId(), userId, subtotal, now);
-        BigDecimal total = subtotal.add(SHIPPING_FEE).subtract(discount)
+        BigDecimal shippingFee = subtotal.compareTo(FREE_SHIPPING_THRESHOLD) >= 0
+                ? BigDecimal.ZERO
+                : SHIPPING_FEE;
+        BigDecimal total = subtotal.add(shippingFee).subtract(discount)
                 .max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
 
         Set<Long> affectedProducts = new HashSet<>();

@@ -66,7 +66,9 @@ const productForm = reactive<Product>({
 const fetchProducts = async () => {
   loading.value = true
   try {
-    const res: any = await request.get<any, Product[]>('/product/list')
+    const res: any = await request.get<any, Product[]>('/product/list', {
+      params: { includeInactive: true }
+    })
     const list = Array.isArray(res) ? res : (res?.records || res?.data || [])
     productList.value = list.map((p: any) => ({
       ...p,
@@ -99,7 +101,11 @@ const filteredProducts = computed(() => {
 
 const handleAdd = () => {
   isEdit.value = false
-  Object.assign(productForm, { id: undefined, name: '', categoryId: undefined, price: 0, stock: 0, picUrl: '', description: '', status: 1 })
+  Object.assign(productForm, {
+    id: undefined, name: '', categoryId: undefined, price: 0, stock: 0,
+    picUrl: '', description: '', status: 1,
+    promoPrice: undefined, promoStartTime: undefined, promoEndTime: undefined
+  })
   dialogVisible.value = true
 }
 
@@ -131,8 +137,17 @@ const handleSubmit = async () => {
   if (!productForm.name || !productForm.categoryId) return ElMessage.warning('必填项不能为空')
   submitLoading.value = true
   try {
-    if (isEdit.value) await request.put('/product/update', productForm)
-    else await request.post('/product/add', productForm)
+    const payload = {
+      id: productForm.id,
+      name: productForm.name,
+      categoryId: productForm.categoryId,
+      price: productForm.price,
+      picUrl: productForm.picUrl,
+      description: productForm.description,
+      status: productForm.status
+    }
+    if (isEdit.value) await request.put('/product/update', payload)
+    else await request.post('/product/add', payload)
     ElMessage.success('操作成功！')
     dialogVisible.value = false
     fetchProducts()

@@ -14,7 +14,9 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URLEncoder;
-import java.util.List;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import com.emall.backend.security.AuthorizationService;
 import com.emall.backend.security.AuthenticatedUser;
 import com.emall.backend.service.OrderService;
@@ -30,6 +32,12 @@ public class OrderController {
 
     @Autowired
     private OrderItemMapper itemMapper;
+
+    @Autowired(required = false)
+    private ProductMapper productMapper;
+
+    @Autowired(required = false)
+    private SkuMapper skuMapper;
 
     @Autowired
     private AuthorizationService authorizationService;
@@ -69,7 +77,11 @@ public class OrderController {
         queryWrapper.orderByDesc("create_time");
 
         Page<Order> pageParam = new Page<>(page, size);
-        return orderMapper.selectPage(pageParam, queryWrapper);
+        Page<Order> result = orderMapper.selectPage(pageParam, queryWrapper);
+        if (result != null) {
+            populateOrderItems(result.getRecords());
+        }
+        return result;
     }
 
     @PutMapping("/status/{id}/{status}")
@@ -111,10 +123,12 @@ public class OrderController {
     @GetMapping("/my")
     public List<Order> getMyOrders(@RequestParam Long userId, Authentication authentication) {
         userId = authorizationService.requireSelfOrAdmin(authentication, userId);
-        // ✨ 修复：增加排序逻辑，确保“我的订单”永远最新的排在最上面
-        return orderMapper.selectList(new QueryWrapper<Order>()
+        // ✨ 修复：增加排序逻辑并批量填充真实订单商品明细
+        List<Order> orders = orderMapper.selectList(new QueryWrapper<Order>()
                 .eq("user_id", userId)
                 .orderByDesc("create_time"));
+        populateOrderItems(orders);
+        return orders;
     }
 
     @GetMapping("/detail/{id}")
@@ -122,11 +136,90 @@ public class OrderController {
         Order order = orderMapper.selectById(id);
         if (order != null) {
             authorizationService.requireOwnerOrAdmin(authentication, order.getUserId());
-            List<OrderItem> items = itemMapper.selectList(
-                    new QueryWrapper<OrderItem>().eq("order_id", id)
-            );
-            order.setItems(items);
+            populateOrderItems(List.of(order));
         }
         return order;
+    }
+
+    private void populateOrderItems(List<Order> orders) {
+        if (orders == null || orders.isEmpty() || itemMapper == null) return;
+
+        List<Long> orderIds = orders.stream()
+                .map(Order::getId)
+                .filter(Objects::nonNull)
+                .toList();
+        if (orderIds.isEmpty()) return;
+
+        List<OrderItem> allItems = itemMapper.selectList(
+                new QueryWrapper<OrderItem>().in("order_id", orderIds));
+        if (allItems == null || allItems.isEmpty()) {
+            orders.forEach(order -> order.setItems(List.of()));
+            return;
+        }
+
+        Map<Long, Product> productMap = Map.of();
+        if (productMapper != null) {
+            Set<Long> productIds = allItems.stream()
+                    .map(OrderItem::getProductId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+            if (!productIds.isEmpty()) {
+                List<Product> products = productMapper.selectBatchIds(productIds);
+                if (products != null) {
+                    productMap = products.stream()
+                            .filter(p -> p != null && p.getId() != null)
+                            .collect(Collectors.toMap(Product::getId, Function.identity(), (a, b) -> a));
+                }
+            }
+        }
+
+        Map<Long, Sku> skuMap = Map.of();
+        if (skuMapper != null) {
+            Set<Long> skuIds = allItems.stream()
+                    .map(OrderItem::getSkuId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+            if (!skuIds.isEmpty()) {
+                List<Sku> skus = skuMapper.selectBatchIds(skuIds);
+                if (skus != null) {
+                    skuMap = skus.stream()
+                            .filter(s -> s != null && s.getId() != null)
+                            .collect(Collectors.toMap(Sku::getId, Function.identity(), (a, b) -> a));
+                }
+            }
+        }
+
+        for (OrderItem item : allItems) {
+            Sku sku = item.getSkuId() != null ? skuMap.get(item.getSkuId()) : null;
+            Product product = item.getProductId() != null ? productMap.get(item.getProductId()) : null;
+
+            if (sku != null && StringUtils.hasText(sku.getPicUrl())) {
+                item.setProductPic(sku.getPicUrl());
+            } else if (product != null && StringUtils.hasText(product.getPicUrl())) {
+                item.setProductPic(product.getPicUrl());
+            }
+
+            if (sku != null && StringUtils.hasText(sku.getSpecName())) {
+                item.setSpec(sku.getSpecName());
+            } else if (StringUtils.hasText(item.getProductName())) {
+                String name = item.getProductName();
+                int openIdx = name.lastIndexOf(" (");
+                if (openIdx > 0 && name.endsWith(")")) {
+                    item.setSpec(name.substring(openIdx + 2, name.length() - 1));
+                }
+            }
+        }
+
+        Map<Long, List<OrderItem>> itemsByOrderId = allItems.stream()
+                .filter(item -> item.getOrderId() != null)
+                .collect(Collectors.groupingBy(OrderItem::getOrderId));
+
+        for (Order order : orders) {
+            List<OrderItem> orderItems = itemsByOrderId.getOrDefault(order.getId(), List.of());
+            order.setItems(orderItems);
+            if (order.getProductId() == null && !orderItems.isEmpty()) {
+                order.setProductId(orderItems.getFirst().getProductId());
+            }
+        }
     }
 }

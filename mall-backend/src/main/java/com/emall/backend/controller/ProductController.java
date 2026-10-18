@@ -44,15 +44,18 @@ public class ProductController {
     @Autowired
     private CategoryMapper categoryMapper;
 
-    @Cacheable(value = "productList", key = "#keyword + '_' + #categoryId + '_' + #sortBy")
+    @Cacheable(value = "productList", key = "#keyword + '_' + #categoryId + '_' + #sortBy + '_' + #includeInactive")
     @GetMapping("/list")
     public List<Product> getProductList(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Long categoryId,
-            @RequestParam(required = false) String sortBy
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false, defaultValue = "false") Boolean includeInactive
     ) {
         QueryWrapper<Product> wrapper = new QueryWrapper<>();
-        wrapper.eq("status", 1);
+        if (!Boolean.TRUE.equals(includeInactive)) {
+            wrapper.eq("status", 1);
+        }
         if (keyword != null && !keyword.isEmpty()) {
             wrapper.and(w -> w.like("name", keyword).or().like("description", keyword));
         }
@@ -104,12 +107,14 @@ public class ProductController {
         if (product.getStatus() != null) wrapper.set("status", product.getStatus());
         if (product.getPicUrl() != null) wrapper.set("pic_url", product.getPicUrl());
         
-        // 显式更新或清空秒杀特惠字段
-        wrapper.set("promo_price", product.getPromoPrice());
-        wrapper.set("promo_stock", product.getPromoStock());
-        wrapper.set("promo_sku_id", product.getPromoSkuId());
-        wrapper.set("promo_start_time", product.getPromoStartTime());
-        wrapper.set("promo_end_time", product.getPromoEndTime());
+        // 仅在显式配置秒杀特惠时更新秒杀字段，避免上下架切换或基础信息编辑误清空秒杀活动（取消秒杀走 /cancelPromo/{id}）
+        if (product.getPromoPrice() != null) {
+            wrapper.set("promo_price", product.getPromoPrice());
+            wrapper.set("promo_stock", product.getPromoStock());
+            wrapper.set("promo_sku_id", product.getPromoSkuId());
+            wrapper.set("promo_start_time", product.getPromoStartTime());
+            wrapper.set("promo_end_time", product.getPromoEndTime());
+        }
 
         productMapper.update(null, wrapper);
         return "更新成功";

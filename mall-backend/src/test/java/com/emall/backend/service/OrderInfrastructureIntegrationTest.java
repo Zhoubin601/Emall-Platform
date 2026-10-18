@@ -199,7 +199,7 @@ class OrderInfrastructureIntegrationTest {
                 USER_ID,
                 idempotencyKey);
 
-        assertThat(created.totalAmount()).isEqualByComparingTo("210.00");
+        assertThat(created.totalAmount()).isEqualByComparingTo("200.00");
         assertThat(stockOf(3L)).isEqualTo(3);
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT stock FROM pms_product WHERE id = 9", Integer.class)).isEqualTo(3);

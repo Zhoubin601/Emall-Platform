@@ -67,15 +67,28 @@ const copyOrderSn = (sn: string) => {
 // 提取与兜底订单商品清单
 const getOrderItems = (order: any) => {
   if (Array.isArray(order.items) && order.items.length > 0) {
-    return order.items.map((item: any) => ({
-      id: item.id || item.productId,
-      productId: item.productId || 1,
-      name: item.productName || item.name || 'E-MALL 官方严选自营商品',
-      price: item.productPrice ?? item.price ?? order.totalAmount,
-      count: item.quantity ?? item.productCount ?? item.count ?? 1,
-      picUrl: item.productPic || item.picUrl || 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?auto=format&fit=crop&w=600&q=80',
-      spec: item.spec || item.specName || '官方旗舰标配'
-    }))
+    return order.items.map((item: any) => {
+      const rawName: string = item.productName || item.name || 'E-MALL 官方严选自营商品'
+      let cleanName = rawName
+      let parsedSpec: string = item.spec || item.specName || ''
+      const openIdx = rawName.lastIndexOf(' (')
+      if (openIdx > 0 && rawName.endsWith(')')) {
+        const suffixSpec = rawName.slice(openIdx + 2, -1)
+        if (!parsedSpec) parsedSpec = suffixSpec
+        if (parsedSpec === suffixSpec) {
+          cleanName = rawName.slice(0, openIdx)
+        }
+      }
+      return {
+        id: item.id || item.productId,
+        productId: item.productId || 1,
+        name: cleanName,
+        price: item.productPrice ?? item.price ?? order.totalAmount,
+        count: item.quantity ?? item.productCount ?? item.count ?? 1,
+        picUrl: item.productPic || item.picUrl || 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?auto=format&fit=crop&w=600&q=80',
+        spec: parsedSpec || '官方旗舰标配'
+      }
+    })
   }
   return [
     {

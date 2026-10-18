@@ -38,7 +38,7 @@
 ### 🚀 后端服务 (`mall-backend`)
 - **核心框架**: Java 21 + Spring Boot 3.2.5
 - **安全与鉴权**: Spring Security + JWT + BCrypt（支持买家、普通管理员、超级管理员三级 RBAC）
-- **持久层与迁移**: MyBatis-Plus 3.5.5 + Flyway 版本化数据库迁移 (`V0` ~ `V3`)
+- **持久层与迁移**: MyBatis-Plus 3.5.5 + Flyway 版本化数据库迁移 (`V0` ~ `V4`)
 - **数据库与缓存**: MySQL 8.0+ / Redis 7.0+
 - **邮件与报表**: Spring Mail (SMTP 587 STARTTLS 动态验证码) + Alibaba EasyExcel 3.3.2
 - **测试与质量门禁**: JUnit 5 + Mockito + Testcontainers + JaCoCo 覆盖率门禁
@@ -82,7 +82,7 @@ Emall-Platform/
 │       └── views/               # 业务模块 (驾驶舱/商品/分类/订单/评价/客服/轮播/公告/用户)
 ├── mall-backend/                # Spring Boot Java 服务端 (默认端口 8080)
 │   ├── src/main/java/           # 控制器、服务层、安全配置、实体与 Mapper
-│   ├── src/main/resources/      # application.yml 与 Flyway SQL 迁移脚本 (V0~V3)
+│   ├── src/main/resources/      # application.yml 与 Flyway SQL 迁移脚本 (V0~V4)
 │   ├── src/test/java/           # 单元测试与 Testcontainers 集成测试
 │   └── docker-compose.yml       # MySQL + Redis + Backend 容器编排配置
 ├── e2e/                         # Playwright 端到端浏览器自动化测试套件
@@ -147,7 +147,7 @@ docker compose up -d --build
 docker compose ps
 docker compose logs -f backend
 ```
-> 首次启动时，Spring Boot 会自动执行 `mall-backend/src/main/resources/db/migration` 下的 `V0 ~ V3` 数据库迁移脚本，默认监听 `http://localhost:8080`。
+> 首次启动时，Spring Boot 会自动执行 `mall-backend/src/main/resources/db/migration` 下的 `V0 ~ V4` 数据库迁移脚本，默认监听 `http://localhost:8080`。
 
 #### 3. 启动前台商城与管理后台
 ```bash
@@ -193,16 +193,19 @@ npm --prefix emall-admin run dev
 | `V1` | `V1__add_order_coupon_and_constraints.sql` | 增加订单优惠券抵扣字段、订单号唯一约束及优惠券查询索引 |
 | `V2` | `V2__enforce_unique_user_email.sql` | 清理重复邮箱并添加用户邮箱唯一性约束 |
 | `V3` | `V3__add_promo_stock_and_sku_id.sql` | 增加商品限时秒杀库存 (`promo_stock`) 与订单项 `sku_id` 字段 |
+| `V4` | `V4__seed_initial_data.sql` | 初始化完整演示种子数据（内置加密后的默认超管/买家账号、商品/SKU/分类/优惠券，Docker 开箱即用） |
 
-### 创建首个管理员账号
-Flyway 仅初始化表结构，不内置固定明文密码。首次在真实数据库部署后：
-1. 在前台商城 (`http://localhost:5173/login`) 注册一个普通账号（密码经 BCrypt 加密存储）。
-2. 在 MySQL 中将该账号提升为管理员（`role = 1` 为普通管理员，`role = 2` 为超级管理员）：
-   ```sql
-   UPDATE sys_user
-   SET role = 2
-   WHERE username = 'your-admin-username';
-   ```
+### 默认预设账号（Docker 开箱即用）
+Flyway `V4` 脚本已内置开箱即用的测试账号（密码均已通过 BCrypt 安全散列加密）：
+
+| 用户名 | 默认密码 | 角色 | 权限与说明 |
+| :---: | :---: | :---: | :--- |
+| `admin` | `123456` | 超级管理员 (`role = 2`) | 拥有全部管理权限（含用户管理、权限分配） |
+| `buyer` | `123456` | 普通买家 (`role = 0`) | 前台商城买家（可直接下单、领券、发表评价） |
+| `603` | `603` | 运营管理员 (`role = 1`) | 后台运营人员（可管理商品、订单、类目、客服） |
+| `605` | `605` | 普通买家 (`role = 0`) | 历史买家账号（已绑定收货地址与多笔历史订单） |
+
+> 如需手动初始化完整库（含建表与种子数据），亦可使用 `mall-backend/数据库mysqldump文件/emall_db_init_seed.sql` 导入。
 
 ---
 

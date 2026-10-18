@@ -1,6 +1,7 @@
 package com.emall.backend.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -23,4 +24,10 @@ public class OrderItem implements Serializable {
     private String productName;
     private BigDecimal productPrice;
     private Integer productCount;
+
+    @TableField(exist = false)
+    private String productPic;
+
+    @TableField(exist = false)
+    private String spec;
 }
